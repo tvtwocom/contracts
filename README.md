@@ -35,7 +35,11 @@ Migrations to a test network can be done if running your own node. Once when a n
 other useful commands:
 
 compile smart contracts: `yarn build`
+
 clear build and rebuild: `yarn clean:contracts`
+
 clear install and reinstall dependencies: `yarn clean:install`
+
 lint smart contracts: `yarn lint:contracts`
+
 lint smart contract tests: `yarn lint:js`
