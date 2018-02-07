@@ -27,3 +27,15 @@ These will be the smart contracts which will power the payment system through to
 ## current questions
 * How do participants come into possession of tokens? Do they buy them somewhere?
 * Is a crowdsale needed? If yes, what do these tokens do? Are they the same ones used for payments?
+
+## how to run
+Main things that will matter for now is testing. This can be done with `yarn test`.
+Migrations to a test network can be done if running your own node. Once when a node is running on port 8545, you can run: `truffle migrate --network <KOVAN|ROPSTEN|RINKEBY>` replace network with network you are using (lowercase)
+
+other useful commands:
+
+compile smart contracts: `yarn build`
+clear build and rebuild: `yarn clean:contracts`
+clear install and reinstall dependencies: `yarn clean:install`
+lint smart contracts: `yarn lint:contracts`
+lint smart contract tests: `yarn lint:js`
