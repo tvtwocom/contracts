@@ -18,3 +18,12 @@ These will be the smart contracts which will power the payment system through to
 
 ## core problems
 * how to prove proof of work (viewing)
+
+## contracts needed
+1. crowdsale contract?
+1. token contract (standard ERC20)
+1. token manager contract (needs better name, will handle payments for work)
+
+## current questions
+* How do participants come into possession of tokens? Do they buy them somewhere?
+* Is a crowdsale needed? If yes, what do these tokens do? Are they the same ones used for payments?
