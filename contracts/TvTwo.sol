@@ -4,10 +4,9 @@ import "./TvTwoCoin.sol";
 import "zeppelin-solidity/contracts/math/SafeMath.sol";
 import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 
+
 contract TvTwo is Ownable {
   using SafeMath for uint;
-
-  // Structs
 
   struct Checkpoint {
     bytes32 videoHash;
@@ -21,16 +20,11 @@ contract TvTwo is Ownable {
     address uploader;
   }
 
-  // State variables
   StandardToken public token;
-  // TTV to Wei rate
-  uint public tokenPrice = 1000; // Default value
-  // Holds both advertiser and user balances.
-  // For the sake of a DRY codebase, the identity of advertisers/users is
+  uint public tokenPrice = 1000;
   mapping (address => uint) public balances;
   Checkpoint[] public checkpoints;
   Video[] public videos;
-  // Maps video hashes to array indices
   mapping (bytes32 => uint) public video_index;
 
   // Uncomment this line if user/video caching is needed
@@ -38,18 +32,14 @@ contract TvTwo is Ownable {
   //
   // mapping (address => uint[]) public user_videos;
 
-  // Events
-
   event Withdraw(
     uint amount,
     address indexed sender,
     uint balanceOfSender
   );
 
-  // Functions
-
   function TvTwo() public {
-      token = createTokenContract();
+    token = createTokenContract();
   }
 
   function tokensToWei(uint _tokens)
@@ -94,14 +84,57 @@ contract TvTwo is Ownable {
     return true;
   }
 
-  // For now anyone can set the price, of course later we need to add a check to the owner of the contract
   function setTokenPrice(
     uint _tokenPrice
   ) public
+    onlyOwner
     returns (bool)
   {
-    // price need to be set manually as it cannot be done via Ethereum network
     tokenPrice = _tokenPrice;
+    return true;
+  }
+
+  function videoCheckpoint(
+    bytes32 _videoHash,
+    uint _relevanceScore
+  )
+    public
+    returns (bool)
+  {
+    address userWallet = msg.sender;
+    Checkpoint memory toSave = Checkpoint(
+      _videoHash,
+      _relevanceScore,
+      userWallet
+    );
+    checkpoints.push(toSave);
+    Video memory video = videos[video_index[_videoHash]];
+
+    if (video.isAd) {
+      internalTransfer(
+        video.uploader,
+        userWallet,
+        _relevanceScore.mul(3)
+      );
+    } else {
+      internalTransfer(
+        userWallet,
+        video.uploader,
+        _relevanceScore
+      );
+    }
+    return true;
+  }
+
+  function withdraw(
+    uint _weiAmount
+  )
+    public
+    returns(bool)
+  {
+    balances[msg.sender] = balances[msg.sender].sub(tokensToWei(_weiAmount));
+    msg.sender.transfer(_weiAmount);
+    Withdraw(_weiAmount, msg.sender, balances[msg.sender]);
     return true;
   }
 
@@ -120,60 +153,10 @@ contract TvTwo is Ownable {
     return true;
   }
 
-  // This function should trigger when the user reached
-  // the defined minimum view time.
-  //
-  // We assume that the relevance score is a number of points
-  // given out of 100
-  function videoCheckpoint(
-    bytes32 _videoHash,
-    uint _relevanceScore
-  )
-    public
-    returns (bool)
+  function createTokenContract()
+    internal
+    returns (StandardToken)
   {
-    address userWallet = msg.sender;
-    Checkpoint memory toSave = Checkpoint(
-      _videoHash,
-      _relevanceScore,
-      userWallet
-    );
-    checkpoints.push(toSave);
-    Video memory video = videos[video_index[_videoHash]];
-
-    if (video.isAd) {
-        internalTransfer(
-          video.uploader,
-          userWallet,
-          _relevanceScore.mul(3)
-        );
-    } else {
-        internalTransfer(
-          userWallet,
-          video.uploader,
-          _relevanceScore
-        );
-    }
-    return true;
-  }
-
-  function withdraw(
-    uint _weiAmount
-  )
-    public
-    returns(bool)
-  {
-    balances[msg.sender] = balances[msg.sender].sub(tokensToWei(_weiAmount));
-    msg.sender.transfer(_weiAmount);
-    Withdraw(_weiAmount, msg.sender, balances[msg.sender]);
-    return true;
-  }
-
-  function () payable public {
-    pay();
-  }
-
-  function createTokenContract() internal returns (StandardToken) {
     return new TvTwoCoin();
   }
 }
