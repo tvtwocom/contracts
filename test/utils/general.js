@@ -1,4 +1,7 @@
 const assert = require('assert')
+const BigNumber = require('bignumber.js')
+
+const gasPrice = new BigNumber(30e9)
 
 const testWillThrow = async (fn, args) => {
   try {
@@ -13,6 +16,35 @@ const testWillThrow = async (fn, args) => {
   }
 }
 
+const getReceipt = txid => {
+  return new Promise((resolve, reject) => {
+    if (typeof txid === 'object' && txid.receipt) {
+      resolve(txid.receipt)
+    }
+
+    web3.eth.getTransactionReceipt(txid, (err, res) => {
+      if (err) {
+        return reject(err)
+      } else {
+        resolve(res)
+      }
+    })
+  })
+}
+
+const getEtherBalance = address => {
+  return new Promise((resolve, reject) => {
+    web3.eth.getBalance(address, (err, res) => {
+      if (err) reject(err)
+
+      resolve(res)
+    })
+  })
+}
+
 module.exports = {
-  testWillThrow
+  testWillThrow,
+  gasPrice,
+  getReceipt,
+  getEtherBalance
 }

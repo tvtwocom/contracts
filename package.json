@@ -18,7 +18,7 @@
     "zeppelin-solidity": "^1.6.0"
   },
   "devDependencies": {
-    "bignumber.js": "^6.0.0",
+    "bignumber.js": "git+https://github.com/frozeman/bignumber.js-nolookahead.git",
     "eslint": "^4.17.0",
     "rimraf": "^2.6.2",
     "solium": "^1.1.3",

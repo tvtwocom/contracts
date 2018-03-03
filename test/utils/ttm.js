@@ -12,11 +12,11 @@ const testCreateVideo = async (ttm, adHash, isAd, creator) => {
   ] = await ttm.videos(postVideoHashIndex)
   const postVideoHash = web3.toAscii(postVideoHash32)
   assert(
-    new BigNumber(0).isEqualTo(preVideoHashIndex),
+    new BigNumber(0).equals(preVideoHashIndex),
     'preVideoHashIndex should be 0 (uninitialized)'
   )
   assert(
-    !new BigNumber(0).isEqualTo(postVideoHashIndex),
+    !new BigNumber(0).equals(postVideoHashIndex),
     'postVideoHashIndex should not be 0 (initialized)'
   )
   assert.equal(

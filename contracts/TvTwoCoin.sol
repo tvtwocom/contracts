@@ -8,7 +8,7 @@ contract TvTwoCoin is StandardToken {
   string public symbol = "TTV";
   uint256 public decimals = 18;
   uint256 public totalSupply = 666666667e18;
-  uint256 public weiTokenRate = 10;
+  uint256 public weiTokenRate = 5;
   uint256 public companyShare = 15;
 
   function TvTwoCoin()
@@ -31,7 +31,7 @@ contract TvTwoCoin is StandardToken {
     view
     returns (uint)
   {
-    return _tokens.mul(100).div(weiTokenRate);
+    return _tokens.mul(weiTokenRate).div(100);
   }
 
   function weiToTokens(uint _wei)
@@ -39,7 +39,7 @@ contract TvTwoCoin is StandardToken {
     view
     returns (uint)
   {
-    return _wei.mul(weiTokenRate).div(100);
+    return _wei.mul(100).div(weiTokenRate);
   }
 
   // will throw on the last bit to buy...

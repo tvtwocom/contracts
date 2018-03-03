@@ -7,10 +7,6 @@ import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 
 // used to mint from TvTwoCoin
 contract TvTwoCoinInterface {
-  function mint()
-    public
-    returns (bool)
-  {}
 }
 
 

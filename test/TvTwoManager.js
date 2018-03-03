@@ -39,8 +39,7 @@ describe('when derping', () => {
     it('should create an ad', async () => {
       const adHash = 'AxjkOLZWXGu6MIxdkHS6EYBwFiXWdjdW'
       const isAd = true
-      const creator = advertiser
-      await testCreateVideo(tt, adHash, isAd, creator)
+      await testCreateVideo(tt, adHash, isAd, advertiser)
     })
   })
 })
