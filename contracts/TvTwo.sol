@@ -2,9 +2,9 @@ pragma solidity ^0.4.18;
 
 import "./TvTwoCoin.sol";
 import "zeppelin-solidity/contracts/math/SafeMath.sol";
-import "zeppelin-solidity/contracts/token/ERC20/SafeERC20.sol";
+import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 
-contract TvTwo {
+contract TvTwo is Ownable {
   using SafeMath for uint;
 
   // Structs
@@ -22,20 +22,14 @@ contract TvTwo {
   }
 
   // State variables
-
   StandardToken public token;
-
   // TTV to Wei rate
-  uint token_price = 1000; // Default value
-
+  uint public tokenPrice = 1000; // Default value
   // Holds both advertiser and user balances.
   // For the sake of a DRY codebase, the identity of advertisers/users is
   mapping (address => uint) public balances;
-
   Checkpoint[] public checkpoints;
-
   Video[] public videos;
-
   // Maps video hashes to array indices
   mapping (bytes32 => uint) public video_index;
 
@@ -63,7 +57,7 @@ contract TvTwo {
     view
     returns (uint)
   {
-    return _tokens.div(tokenPrice)
+    return _tokens.div(tokenPrice);
   }
 
   function weiToTokens(uint _wei)
@@ -71,7 +65,7 @@ contract TvTwo {
     view
     returns (uint)
   {
-    return _tokens.mul(tokenPrice)
+    return _wei.mul(tokenPrice);
   }
 
   function createVideo(
@@ -107,7 +101,7 @@ contract TvTwo {
     returns (bool)
   {
     // price need to be set manually as it cannot be done via Ethereum network
-    token_price = _tokenPrice;
+    tokenPrice = _tokenPrice;
     return true;
   }
 
@@ -151,7 +145,7 @@ contract TvTwo {
         internalTransfer(
           video.uploader,
           userWallet,
-          _relevanceScore.mul(3);
+          _relevanceScore.mul(3)
         );
     } else {
         internalTransfer(
