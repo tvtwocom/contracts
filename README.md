@@ -34,7 +34,7 @@ Pausing is not needed due to the way the crowdsale contracts works.
 - [ ] 15% goes to company
 - [ ] split into 36 parts and release every month (3 years timeframe)
 
-### tvTwo smart contract requirements
+### TV-TWO smart contract requirements
 
 #### specs
 *short term goal: submit some preshared hash for token reward to relevant party/situation*
@@ -54,6 +54,12 @@ Pausing is not needed due to the way the crowdsale contracts works.
   1. hash is submitted from smart tv to smart contract when time is hit
   1. smart contract compares hash and identifies relevant party
   1. token payments are made
+
+#### workflow
+The user gets the link for the next video from the TV-TWO server. The video is played through the app. Once 20% of the video is played, the app calculates a hash out of the image that is displayed at this moment. The Smart TV sends the hash to the Smart Contract. Through the hash, the Smart Contract finds the right advertiser / content content creator. TV-TWO has a payment channel with each user, advertiser and content creator through which the tokens are transferred.
+
+#### question
+- [ ] While the token transfer is happening off-chain. Wouldn’t the user incur gas costs for sending the hash of every video to the contract?
 
 ## how to run
 Main things that will matter for now is testing. This can be done with `yarn test`.
