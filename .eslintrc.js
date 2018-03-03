@@ -57,7 +57,8 @@ module.exports = {
     setTimeout: true,
     test: true,
     xdescribe: true,
-    xit: true
+    xit: true,
+    web3: true
   },
   rules: {
     'compat/compat': 'error',

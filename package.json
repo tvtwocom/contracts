@@ -7,7 +7,7 @@
   "license": "MIT",
   "private": true,
   "scripts": {
-    "test": "truffle test",
+    "test": "yarn run clean:contracts && truffle test",
     "build": "truffle compile",
     "clean:contracts": "rimraf build && truffle compile",
     "clean:install": "rimraf node_modules && yarn install",
