@@ -1,6 +1,8 @@
 const assert = require('assert')
 const BigNumber = require('bignumber.js')
 
+const { testBuyTokens, testSetAllowance } = require('./ttc')
+
 const testSetTvTwoCoin = async (ttm, sender, ttcAddress) => {
   const preTtc = await ttm.ttc()
   await ttm.setTvTwoCoin(ttcAddress, {
@@ -86,13 +88,14 @@ const testReachAdCheckpoint = async (
   ttc,
   consumer,
   creator,
-  videoHash,
+  adHash,
   relevanceScore
 ) => {
   const preCreatorBalance = await ttc.balanceOf(creator)
   const preConsumerBalance = await ttc.balanceOf(consumer)
-
-  await ttm.videoCheckpoint(videoHash, relevanceScore)
+  await ttm.videoCheckpoint(adHash, relevanceScore, {
+    from: consumer
+  })
 
   const postCreatorBalance = await ttc.balanceOf(creator)
   const postConsumerBalance = await ttc.balanceOf(consumer)
@@ -122,7 +125,9 @@ const testReachVideoCheckpoint = async (
   const preCreatorBalance = await ttc.balanceOf(creator)
   const preConsumerBalance = await ttc.balanceOf(consumer)
 
-  await ttm.videoCheckpoint(videoHash, relevanceScore)
+  await ttm.videoCheckpoint(videoHash, relevanceScore, {
+    from: consumer
+  })
 
   const postCreatorBalance = await ttc.balanceOf(creator)
   const postConsumerBalance = await ttc.balanceOf(consumer)
@@ -158,9 +163,52 @@ const testSetMinAllowance = async (ttm, sender, allowance) => {
   )
 }
 
+const testSetupTtcBalancesAllowances = async (
+  ttm,
+  ttc,
+  owner,
+  ecosystemParticipants
+) => {
+  await testSetTvTwoCoin(ttm, owner, ttc.address)
+
+  const minTokenAmount = await ttm.minimumAllowance()
+  const minBuyAmount = await ttc.tokensToWei(minTokenAmount)
+  const buyAmount = minBuyAmount.mul(2)
+  const approvalAmount = minTokenAmount.mul(2)
+
+  for (const participant of ecosystemParticipants) {
+    const preParticipantBalance = await ttc.balanceOf(participant)
+    await testBuyTokens(ttc, participant, buyAmount)
+    await testSetAllowance(ttc, participant, ttm.address, approvalAmount)
+
+    const postParticipantBalance = await ttc.balanceOf(participant)
+    const participantAllowance = await ttc.allowance(participant, ttm.address)
+
+    assert(
+      postParticipantBalance.greaterThan(0),
+      'participant balance should be more than 0'
+    )
+    assert(
+      participantAllowance.greaterThan(0),
+      'participant allowance should be more than 0'
+    )
+    assert.equal(
+      postParticipantBalance.sub(preParticipantBalance).toString(),
+      approvalAmount.toString(),
+      'participant balance should be incremented by buyAmount'
+    )
+    assert.equal(
+      participantAllowance.toString(),
+      approvalAmount.toString(),
+      'participant ttm contract approval should be that set in args'
+    )
+  }
+}
+
 module.exports = {
   testSetTvTwoCoin,
   testCreateVideo,
   testReachCheckpoint,
-  testSetMinAllowance
+  testSetMinAllowance,
+  testSetupTtcBalancesAllowances
 }

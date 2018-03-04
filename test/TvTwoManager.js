@@ -6,7 +6,9 @@ const { testWillThrow, zeroAddress } = require('./utils/general')
 const {
   testSetTvTwoCoin,
   testCreateVideo,
-  testSetMinAllowance
+  testSetMinAllowance,
+  testSetupTtcBalancesAllowances,
+  testReachCheckpoint
 } = require('./utils/ttm')
 
 const { testBuyTokens, testSetAllowance } = require('./utils/ttc')
@@ -163,21 +165,59 @@ describe('when creating videos', () => {
   })
 })
 
-// describe('when reaching checkpoints', async () => {
-//   contract('TvTwoManager/TvTwoCoin', accounts => {
-//     const advertiser = accounts[1]
-//     const contentCreator = accounts[2]
-//     const contentConsumer = accounts[3]
-//     let ttc
-//     let ttm
-//
-//     beforeEach('setup contracts', async () => {
-//       ttc = TvTwoCoin.new()
-//       ttm = TvTwoManager.new()
-//     })
-//
-//     it('should pay contentConsumer from advertiser for watched ads', async () => {})
-//
-//     it('should pay contentCreator from contentConsumer from watched videos', async () => {})
-//   })
-// })
+describe('when reaching checkpoints', async () => {
+  contract('TvTwoManager/TvTwoCoin', accounts => {
+    const owner = accounts[0]
+    const advertiser = accounts[1]
+    const contentCreator = accounts[2]
+    const contentConsumer = accounts[3]
+    const adHash = 'AxjkOLZWXGu6MIxdkHS6EYBwFiXWdjdW'
+    const videoHash = 'YsjkOLZjdsu6MIxjf7s6EYBwFiXWdjdX'
+    let ttc
+    let ttm
+
+    beforeEach('setup contracts', async () => {
+      ttc = await TvTwoCoin.new()
+      ttm = await TvTwoManager.new()
+      const ecosystemParticipants = accounts.slice(1, 4)
+      await testSetupTtcBalancesAllowances(
+        ttm,
+        ttc,
+        owner,
+        ecosystemParticipants
+      )
+      await testCreateVideo(ttm, adHash, true, advertiser)
+      await testCreateVideo(ttm, videoHash, false, contentCreator)
+    })
+
+    it('should pay contentConsumer from advertiser for watched ads', async () => {
+      await testReachCheckpoint(
+        ttm,
+        ttc,
+        contentConsumer,
+        videoHash,
+        new BigNumber(1e16)
+      )
+    })
+
+    it('should pay contentCreator from contentConsumer from watched videos', async () => {
+      await testReachCheckpoint(
+        ttm,
+        ttc,
+        contentConsumer,
+        adHash,
+        new BigNumber(1e16)
+      )
+    })
+
+    it('should NOT pay anyone if hash does not exist', async () => {
+      await testWillThrow(testReachCheckpoint, [
+        ttm,
+        ttc,
+        contentConsumer,
+        'somerandommadeuphash',
+        new BigNumber(1e16)
+      ])
+    })
+  })
+})

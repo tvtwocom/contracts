@@ -119,6 +119,7 @@ contract TvTwoManager is Ownable {
   )
     public
     ttcInitialized
+    minAllowanceMet
     videoHashExists(_videoHash)
     returns (bool)
   {
