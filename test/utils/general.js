@@ -3,6 +3,8 @@ const BigNumber = require('bignumber.js')
 
 const gasPrice = new BigNumber(30e9)
 
+const zeroAddress = `0x${'0'.repeat(40)}`
+
 const testWillThrow = async (fn, args) => {
   try {
     await fn(...args)
@@ -46,5 +48,6 @@ module.exports = {
   testWillThrow,
   gasPrice,
   getReceipt,
-  getEtherBalance
+  getEtherBalance,
+  zeroAddress
 }

@@ -23,17 +23,25 @@ contract TvTwoCoinInterface {
     view
     returns (uint256)
   {}
+
+  function balanceOf(
+    address _owner
+  )
+    public
+    view
+    returns (uint256 balance)
+  {}
 }
 
 
 contract TvTwoManager is Ownable {
   using SafeMath for uint256;
 
-  event Checkpoint {
-    bytes32 videoHash;
-    uint256 relevanceScore;
-    address sender;
-  }
+  event Checkpoint (
+    bytes32 indexed videoHash,
+    uint256 relevanceScore,
+    address indexed sender
+  );
 
   struct Video {
     bytes32 videoHash;
@@ -41,13 +49,26 @@ contract TvTwoManager is Ownable {
     address uploader;
   }
 
-  mapping (bytes32 => uint256) private videoIndex;
-  Checkpoint[] private checkpoints;
-  Video[] private videos;
-  TvTwoCoinInterface private ttc;
+  uint256 public minimumAllowance = 1e18;
+  mapping (bytes32 => uint256) public videoIndex;
+  Video[] public videos;
+  TvTwoCoinInterface public ttc;
 
   modifier videoHashExists(bytes32 _videoHash) {
     require(videoIndex[_videoHash] > 0);
+    _;
+  }
+
+  modifier ttcInitialized() {
+    require(address(ttc) != address(0));
+    _;
+  }
+
+  modifier minAllowanceMet() {
+    uint256 _allowance = ttc.allowance(msg.sender, this);
+    uint256 _balance = ttc.balanceOf(msg.sender);
+    require(_balance >= minimumAllowance);
+    require(_allowance >= minimumAllowance);
     _;
   }
 
@@ -63,7 +84,18 @@ contract TvTwoManager is Ownable {
     public
     onlyOwner
   {
+    require(_tokenAddress != address(ttc));
     ttc = TvTwoCoinInterface(_tokenAddress);
+  }
+
+  function setMinimumAllowance(
+    uint256 _minAllowance
+  )
+    public
+    onlyOwner
+  {
+    require(minimumAllowance != _minAllowance);
+    minimumAllowance = _minAllowance;
   }
 
   function addVideo(
@@ -71,15 +103,12 @@ contract TvTwoManager is Ownable {
     bool _isAd
   )
     public
+    ttcInitialized
+    minAllowanceMet
     returns (uint256)
   {
-    Video memory video;
-
-    video.videoHash = _videoHash;
-    video.isAd = _isAd;
-    video.uploader = msg.sender;
-
-    videos.push(video);
+    require(videoIndex[_videoHash] == 0);
+    videos.push(Video(_videoHash, _isAd, msg.sender));
     videoIndex[_videoHash] = videos.length.sub(1);
     return videos.length.sub(1);
   }
@@ -89,6 +118,7 @@ contract TvTwoManager is Ownable {
     uint256 _relevanceScore
   )
     public
+    ttcInitialized
     videoHashExists(_videoHash)
     returns (bool)
   {

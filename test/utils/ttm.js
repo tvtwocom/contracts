@@ -1,9 +1,23 @@
 const assert = require('assert')
 const BigNumber = require('bignumber.js')
 
+const testSetTvTwoCoin = async (ttm, sender, ttcAddress) => {
+  const preTtc = await ttm.ttc()
+  await ttm.setTvTwoCoin(ttcAddress, {
+    from: sender
+  })
+  const postTtc = await ttm.ttc()
+  assert(preTtc !== postTtc, 'the ttc address should have changed')
+  assert.equal(
+    postTtc,
+    ttcAddress,
+    'the ttc address should be set to the argument given'
+  )
+}
+
 const testCreateVideo = async (ttm, adHash, isAd, creator) => {
   const preVideoHashIndex = await ttm.videoIndex(adHash)
-  await ttm.addVideo(adHash, true, { from: creator })
+  await ttm.addVideo(adHash, isAd, { from: creator })
   const postVideoHashIndex = await ttm.videoIndex(adHash)
   const [
     postVideoHash32,
@@ -36,6 +50,117 @@ const testCreateVideo = async (ttm, adHash, isAd, creator) => {
   )
 }
 
+const testReachCheckpoint = async (
+  ttm,
+  ttc,
+  consumer,
+  videoHash,
+  relevanceScore
+) => {
+  const videoIndex = await ttm.videoIndex(videoHash)
+  const videoData = await ttm.videos(videoIndex)
+  const isAd = videoData[1]
+  const creator = videoData[2]
+
+  isAd
+    ? await testReachAdCheckpoint(
+        ttm,
+        ttc,
+        consumer,
+        creator,
+        videoHash,
+        relevanceScore
+      )
+    : await testReachVideoCheckpoint(
+        ttm,
+        ttc,
+        consumer,
+        creator,
+        videoHash,
+        relevanceScore
+      )
+}
+
+const testReachAdCheckpoint = async (
+  ttm,
+  ttc,
+  consumer,
+  creator,
+  videoHash,
+  relevanceScore
+) => {
+  const preCreatorBalance = await ttc.balanceOf(creator)
+  const preConsumerBalance = await ttc.balanceOf(consumer)
+
+  await ttm.videoCheckpoint(videoHash, relevanceScore)
+
+  const postCreatorBalance = await ttc.balanceOf(creator)
+  const postConsumerBalance = await ttc.balanceOf(consumer)
+
+  const transferAmount = new BigNumber(relevanceScore).mul(3)
+
+  assert.equal(
+    postConsumerBalance.sub(preConsumerBalance).toString(),
+    transferAmount.toString(),
+    'ad consumer token balance should be incremented by transfer amount'
+  )
+  assert.equal(
+    preCreatorBalance.sub(postCreatorBalance).toString(),
+    transferAmount.toString(),
+    'ad creator token balance should be decremented by transfer amount'
+  )
+}
+
+const testReachVideoCheckpoint = async (
+  ttm,
+  ttc,
+  consumer,
+  creator,
+  videoHash,
+  relevanceScore
+) => {
+  const preCreatorBalance = await ttc.balanceOf(creator)
+  const preConsumerBalance = await ttc.balanceOf(consumer)
+
+  await ttm.videoCheckpoint(videoHash, relevanceScore)
+
+  const postCreatorBalance = await ttc.balanceOf(creator)
+  const postConsumerBalance = await ttc.balanceOf(consumer)
+
+  const transferAmount = new BigNumber(relevanceScore)
+
+  assert.equal(
+    preConsumerBalance.sub(postConsumerBalance).toString(),
+    transferAmount.toString(),
+    'video consumer token balance should be decremented by transfer amount'
+  )
+  assert.equal(
+    postCreatorBalance.sub(preCreatorBalance).toString(),
+    transferAmount.toString(),
+    'video creator token balance should be incremented by transfer amount'
+  )
+}
+
+const testSetMinAllowance = async (ttm, sender, allowance) => {
+  const preAllowance = await ttm.minimumAllowance()
+  await await ttm.setMinimumAllowance(allowance, {
+    from: sender
+  })
+  const postAllownace = await ttm.minimumAllowance()
+  assert(
+    preAllowance.toString() !== postAllownace.toString(),
+    'minimumAllowance should have changed'
+  )
+  assert.equal(
+    postAllownace.toString(),
+    allowance.toString(),
+    'minimumAllowance should be set to the argument given'
+  )
+}
+
 module.exports = {
-  testCreateVideo
+  testSetTvTwoCoin,
+  testCreateVideo,
+  testReachCheckpoint,
+  testSetMinAllowance
 }

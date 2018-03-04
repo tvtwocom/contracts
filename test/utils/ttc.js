@@ -62,7 +62,26 @@ const testSellTokens = async (ttc, seller, sellAmountTokens) => {
   )
 }
 
+const testSetAllowance = async (ttc, approver, spender, approveAmount) => {
+  const preSpenderAllowance = await ttc.allowance(approver, spender)
+
+  await ttc.approve(spender, approveAmount, {
+    from: approver
+  })
+
+  const postSpenderAllowance = await ttc.allowance(approver, spender)
+
+  assert(preSpenderAllowance.equals(0), 'preSpenderAllowance should start as 0')
+  assert(approveAmount.greaterThan(0), 'approveAmount should be more than 0')
+  assert.equal(
+    postSpenderAllowance.sub(preSpenderAllowance).toString(),
+    approveAmount.toString(),
+    'spender allowance should be incremented by approveAmount'
+  )
+}
+
 module.exports = {
   testBuyTokens,
-  testSellTokens
+  testSellTokens,
+  testSetAllowance
 }

@@ -2,7 +2,7 @@ const TvTwoCoin = artifacts.require('TvTwoCoin')
 const assert = require('assert')
 const BigNumber = require('bignumber.js')
 const { testWillThrow } = require('./utils/general')
-const { testBuyTokens, testSellTokens } = require('./utils/ttc')
+const { testBuyTokens, testSellTokens, testSetAllowance } = require('./utils/ttc')
 
 const expectedContractData = {
   name: 'TV-TWO',
@@ -120,6 +120,9 @@ describe('when deploying a new TvTwoCoin', () => {
 describe('when buying and selling', () => {
   contract('TvTwoCoin', accounts => {
     const trader = accounts[1]
+    const approver = accounts[2]
+    const spender = accounts[3]
+    const approveAmount = new BigNumber(1e18)
     let ttc
 
     beforeEach('setup contract', async () => {
@@ -144,6 +147,10 @@ describe('when buying and selling', () => {
       const tokenBalance = await ttc.balanceOf(trader)
       const overSellTokenAmount = tokenBalance.add(1)
       await testWillThrow(testSellTokens, [ttc, trader, overSellTokenAmount])
+    })
+
+    it('should set allowances', async () => {
+      await testSetAllowance(ttc, approver, spender, approveAmount)
     })
   })
 })
