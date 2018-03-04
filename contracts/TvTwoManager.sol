@@ -29,7 +29,7 @@ contract TvTwoCoinInterface {
 contract TvTwoManager is Ownable {
   using SafeMath for uint256;
 
-  struct Checkpoint {
+  event Checkpoint {
     bytes32 videoHash;
     uint256 relevanceScore;
     address sender;
@@ -91,11 +91,6 @@ contract TvTwoManager is Ownable {
     public
     returns (bool)
   {
-    checkpoints.push(Checkpoint(
-      _videoHash,
-      _relevanceScore,
-      msg.sender
-    ));
     Video memory video = videos[videoIndex[_videoHash]];
     video.isAd
       ? ttc.transferFrom(
@@ -108,6 +103,7 @@ contract TvTwoManager is Ownable {
           video.uploader,
           _relevanceScore
         );
+    Checkpoint(_videoHash, _relevanceScore, msg.sender);
     return true;
   }
 }
