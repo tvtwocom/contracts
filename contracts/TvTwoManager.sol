@@ -1,21 +1,37 @@
 pragma solidity ^0.4.18;
 
-import "./TvTwoCoin.sol";
 import "zeppelin-solidity/contracts/math/SafeMath.sol";
 import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 
 
 // used to mint from TvTwoCoin
 contract TvTwoCoinInterface {
+  function transferFrom(
+    address _from,
+    address _to,
+    uint256 _value
+  )
+    public
+    returns (bool)
+  {}
+
+  function allowance(
+    address _owner,
+    address _spender
+  )
+    public
+    view
+    returns (uint256)
+  {}
 }
 
 
 contract TvTwoManager is Ownable {
-  using SafeMath for uint;
+  using SafeMath for uint256;
 
   struct Checkpoint {
     bytes32 videoHash;
-    uint relevanceScore;
+    uint256 relevanceScore;
     address sender;
   }
 
@@ -25,19 +41,19 @@ contract TvTwoManager is Ownable {
     address uploader;
   }
 
-  TvTwoCoinInterface public ttc;
-  uint public tokenPrice = 1000;
-  mapping (address => uint) public balances;
-  mapping (bytes32 => uint) public videoIndex;
-  Checkpoint[] public checkpoints;
-  Video[] public videos;
+  mapping (bytes32 => uint256) private videoIndex;
+  Checkpoint[] private checkpoints;
+  Video[] private videos;
+  TvTwoCoinInterface private ttc;
 
-  // Uncomment this line if user/video caching is needed
-  // If enabled, the cache needs to be updated in the addVideo function
-  //
-  // mapping (address => uint[]) public user_videos;
+  modifier videoHashExists(bytes32 _videoHash) {
+    require(videoIndex[_videoHash] > 0);
+    _;
+  }
 
-  function TvTwoManager() public {
+  function TvTwoManager()
+    public
+  {
     videos.push(Video('', false, address(0)));
   }
 
@@ -55,7 +71,7 @@ contract TvTwoManager is Ownable {
     bool _isAd
   )
     public
-    returns (uint)
+    returns (uint256)
   {
     Video memory video;
 
@@ -70,48 +86,28 @@ contract TvTwoManager is Ownable {
 
   function videoCheckpoint(
     bytes32 _videoHash,
-    uint _relevanceScore
+    uint256 _relevanceScore
   )
     public
     returns (bool)
   {
-    address userWallet = msg.sender;
-    Checkpoint memory toSave = Checkpoint(
+    checkpoints.push(Checkpoint(
       _videoHash,
       _relevanceScore,
-      userWallet
-    );
-    checkpoints.push(toSave);
+      msg.sender
+    ));
     Video memory video = videos[videoIndex[_videoHash]];
-
-    if (video.isAd) {
-      internalTransfer(
-        video.uploader,
-        userWallet,
-        _relevanceScore.mul(3)
-      );
-    } else {
-      internalTransfer(
-        userWallet,
-        video.uploader,
-        _relevanceScore
-      );
-    }
-    return true;
-  }
-
-  function internalTransfer(
-    address _from,
-    address _to,
-    uint _amount
-  )
-    internal
-    returns (bool)
-  {
-    require (_to != address(0));
-    balances[_from] = balances[_from].sub(_amount);
-    balances[_to] = balances[_to].add(_amount);
-
+    video.isAd
+      ? ttc.transferFrom(
+          video.uploader,
+          msg.sender,
+          _relevanceScore.mul(3)
+        )
+      : ttc.transferFrom(
+          msg.sender,
+          video.uploader,
+          _relevanceScore
+        );
     return true;
   }
 }
