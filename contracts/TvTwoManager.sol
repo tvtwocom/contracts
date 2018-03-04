@@ -89,6 +89,7 @@ contract TvTwoManager is Ownable {
     uint256 _relevanceScore
   )
     public
+    videoHashExists(_videoHash)
     returns (bool)
   {
     Video memory video = videos[videoIndex[_videoHash]];
