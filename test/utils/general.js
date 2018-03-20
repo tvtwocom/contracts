@@ -1,6 +1,10 @@
 const assert = require('assert')
 const BigNumber = require('bignumber.js')
 
+const TvTwoCoin = artifacts.require('TvTwoCoin')
+const URaiden = artifacts.require('RaidenMicroTransferChannels')
+const TvTwoManager = artifacts.require('TvTwoManager')
+
 const gasPrice = new BigNumber(30e9)
 
 const zeroAddress = `0x${'0'.repeat(40)}`
@@ -44,10 +48,33 @@ const getEtherBalance = address => {
   })
 }
 
+async function migrate(owner, challengePeriod = 500) {
+  // const challengePeriod = !!_challengePeriod ? _challengePeriod : 500
+  const ttc =  await TvTwoCoin.new({from: owner})
+  const ttm = await TvTwoManager.new({from: owner})
+
+  const uRaiden = await URaiden.new(
+     ttc.address,
+     challengePeriod,
+    [ttc.address],
+    {from: owner}
+  )
+
+  await ttc.setURaidenContractAddress(uRaiden.address, {from: owner})
+  assert.equal(await ttc.uRaiden(), uRaiden.address, 'TTC has wrong ChannelManager')
+
+  await ttc.setTvTwoManager(ttm.address, {from: owner})
+  assert.equal(await ttc.tvTwoManager(), ttm.address, 'TTC has wrong TvTwoManger')
+  TvTwoCoin.link(URaiden)
+  
+  return {ttc, ttm, uRaiden}
+}
+
 module.exports = {
   testWillThrow,
   gasPrice,
   getReceipt,
   getEtherBalance,
-  zeroAddress
+  zeroAddress,
+  migrate
 }
