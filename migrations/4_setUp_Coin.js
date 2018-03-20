@@ -6,7 +6,7 @@ module.exports = deployer => // async deployers caused dificulties
 TvTwoCoin.deployed()
   .then( tvTwoCoin => Promise.all([
 	   tvTwoCoin.setTvTwoManager(TvTwoManager.address),
-	   tvTwoCoin.setURaidenContractAddress(RaidenMicroTransferChannels.address)])
+	   tvTwoCoin.setChannelManager(RaidenMicroTransferChannels.address)])
 	      )
   .then( () => deployer )// !important promise chain must return deployer or the whole migrations timing gets fucked up (I Think ??)
        

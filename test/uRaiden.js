@@ -7,10 +7,10 @@ const { testWillThrow } = require('./utils/general')
 const { migrate } = require('./utils/general')
 const { testDeposit } = require('./utils/uRaiden')
 
-describe('TvTwoCoin', () => {
+describe('StateChannels', () => {
   let uRaiden, ttc, ttm
   const owner = web3.eth.accounts[0]
-  before(async () => {
+  beforeEach(async () => {
     instances = await migrate(owner)
     uRaiden = instances.uRaiden
     ttc = instances.ttc
@@ -19,7 +19,11 @@ describe('TvTwoCoin', () => {
 
   it('should deposit', async () => {
     const amount = 50
-    await testDeposit(uRaiden, ttc, owner, amount)
+      await testDeposit(uRaiden, ttc, owner, amount)
+  })
+
+  xit('should settle', () => {
     
   })
+
 })

@@ -9,20 +9,22 @@ async function testDeposit(uRaiden, ttc, spender, amount) {
       spender: await ttc.balanceOf(spender),
       itself: await ttc.balanceOf(ttc.address)
     } )
-    
+
+    const ttm = await ttc.ttm()
     const preBalances = await balances()
 
-    depositResponse = await ttc.deposit(amount, {from: spender})
-
-    const transferEvents = depositResponse.logs.filter(entrie => entrie.event == 'Transfer')
-    assert.equal(transferEvents.length, 2, 'there should have been two transfers one from spender to this, and one from this to stateChannelManager')
+    // depositResponse = await ttc.deposit(amount, {from: spender})
+    const data = spender.concat(ttm.replace('0x',''))
+    depositResponse = await ttc._transfer(uRaiden.address, amount, data, {from: spender})
+    const transferEvent = depositResponse.logs.filter(entrie => entrie.event == 'Transfer')[0]
+    // assert.equal(transferEvents.length, 1, 'there should have been two transfers one from spender to this, and one from this to stateChannelManager')
     // [TODO] I think the implementation of deposit will change to emit just one event then this can replace the preceeding assert
-    // assert.equal(transferEvent.args.from, spender, 'from')
-    // assert.equal(transferEvent.args.to, uRaiden.address, 'to')
+    assert.equal(transferEvent.args.from, spender, 'from')
+    assert.equal(transferEvent.args.to, uRaiden.address, 'to')
 
     const channelCreatedEvent = depositResponse.logs.filter(entrie => entrie.event == 'ChannelCreated')[0]
     assert.equal(channelCreatedEvent.args._sender_address, spender, 'ChannelCreated sender')
-    assert.equal(channelCreatedEvent.args._receiver_address, await ttc.tvTwoManager(), 'ChannelCreated receiver')
+    assert.equal(channelCreatedEvent.args._receiver_address, ttm, 'ChannelCreated receiver')
     assert.equal(channelCreatedEvent.args._deposit, amount.toString())
     
     const postBalances = await balances()
@@ -34,6 +36,8 @@ async function testDeposit(uRaiden, ttc, spender, amount) {
 	   `spender balance should have decreased by ${amount
             }, but ${preBalances.spender.sub(postBalances.spender)}`)
     assert.equal(preBalances.itself.toString(), postBalances.itself.toString(), 'its own balance remains untouched')
+    
+    return depositResponse
   } catch (e) {
     console.error('testDeposit failed : ', e)
     throw e

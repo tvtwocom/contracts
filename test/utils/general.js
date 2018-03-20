@@ -60,11 +60,11 @@ async function migrate(owner, challengePeriod = 500) {
     {from: owner}
   )
 
-  await ttc.setURaidenContractAddress(uRaiden.address, {from: owner})
-  assert.equal(await ttc.uRaiden(), uRaiden.address, 'TTC has wrong ChannelManager')
+  await ttc.setChannelManager(uRaiden.address, {from: owner})
+  assert.equal(await ttc.channelManager(), uRaiden.address, 'TTC has wrong ChannelManager')
 
   await ttc.setTvTwoManager(ttm.address, {from: owner})
-  assert.equal(await ttc.tvTwoManager(), ttm.address, 'TTC has wrong TvTwoManger')
+  assert.equal(await ttc.ttm(), ttm.address, 'TTC has wrong TvTwoManger')
   TvTwoCoin.link(URaiden)
   
   return {ttc, ttm, uRaiden}
