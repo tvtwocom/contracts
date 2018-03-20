@@ -116,12 +116,12 @@ contract TvTwoCoin is Ownable, StandardToken {
   }
 
   address public ttm = 0x0;
-  function setTvTwoManager(address _tvTwoManagerContract)
+  function setTvTwoManager(address _offlineSigningReceiver)
     onlyOwner
     public
   {
-    if(isContract(_tvTwoManagerContract) && ttm != _tvTwoManagerContract) {
-      ttm = _tvTwoManagerContract;
+    if(!isContract(_offlineSigningReceiver) && ttm != _offlineSigningReceiver) {
+      ttm = _offlineSigningReceiver;
     }
   }
 
