@@ -1,5 +1,5 @@
 const URaiden = artifacts.require('RaidenMicroTransferChannels')
-
+const BigNumber = require('bignumber.js')
 
 channelFromEvent = event => ({
   openingBlock: event.blockNumber,
@@ -14,6 +14,46 @@ toChannelInfoObject = _channelInfo => ({
   closingBalance: _channelInfo.shift().toString(),
   withdrawnBalance:_channelInfo.shift().toString()
 })
+
+async function testTopUpChannel(uRaiden, ttc, channel, amount) {
+  const {spender, recepient, openingBlock} = channel
+  const balances = async () => ( {
+    uRaiden: await ttc.balanceOf(uRaiden.address),
+    spender: await ttc.balanceOf(spender),
+  } )
+    const preBalances = await balances()
+    const preChannelInfo  = await uRaiden.getChannelInfo(
+      spender,
+      recepient,
+      openingBlock
+    ).then(toChannelInfoObject)
+
+    const data = spender
+	  .concat(recepient.replace('0x', ''))
+	  .concat(web3.padLeft(openingBlock.toString(16), 8)) // 4 bytes
+    const topUpResponse = await ttc._transfer(uRaiden.address, amount, data)
+    const channelToppedUpEvent = topUpResponse.logs.filter( item => item.event == "ChannelToppedUp")[0]
+  assert.equal(channelToppedUpEvent.args._added_deposit, amount.toString())
+    
+    const postBalances = await balances()
+    assert(preBalances.uRaiden.add(amount).eq(postBalances.uRaiden),
+	   `uRaiden balance should have increased by ${amount
+            }, but ${postBalances.uRaiden.sub(preBalances.uRaiden)}`)
+    assert(preBalances.spender.sub(amount).eq(postBalances.spender),
+	   `spender balance should have decreased by ${amount
+            }, but ${preBalances.spender.sub(postBalances.spender)}`)
+
+    
+    const postChannelInfo = await uRaiden.getChannelInfo(
+      spender,
+      recepient,
+      openingBlock
+    ).then(toChannelInfoObject)
+    assert.equal(new BigNumber(preChannelInfo.deposit)
+		 .add(amount).toString(),
+		 postChannelInfo.deposit, `ChannelInfo Deposit wrong`)
+    return { ...channel, postChannelInfo}
+}
 
 async function testCreateChannel(uRaiden, ttc, spender, amount) {
   try {
@@ -54,7 +94,7 @@ async function testCreateChannel(uRaiden, ttc, spender, amount) {
 
     assert(preBalances.uRaiden.add(amount).eq(postBalances.uRaiden),
 	   `uRaiden balance should have increased by ${amount
-            }, but ${preBalances.uRaiden.sub(postBalances.uRaiden)}`)
+            }, but ${postBalances.uRaiden.sub(preBalances.uRaiden)}`)
     assert(preBalances.spender.sub(amount).eq(postBalances.spender),
 	   `spender balance should have decreased by ${amount
             }, but ${preBalances.spender.sub(postBalances.spender)}`)
@@ -62,7 +102,7 @@ async function testCreateChannel(uRaiden, ttc, spender, amount) {
 
     assert.equal(preBalances.itself.toString(), postBalances.itself.toString(), 'its own balance remains untouched')
     
-    return depositResponse
+    return { ...channel, channelInfo}
   } catch (e) {
     console.error('testDeposit failed : ', e)
     throw e
@@ -71,6 +111,7 @@ async function testCreateChannel(uRaiden, ttc, spender, amount) {
 
 module.exports = {
   testCreateChannel,
+  testTopUpChannel,
   channelFromEvent,
   toChannelInfoObject
 }
