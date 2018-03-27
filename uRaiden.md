@@ -16,7 +16,7 @@ they will be released once this channel is closed again.
 
 ## idea of an implementation
 
-![stateChannel Diagram](./stateChannels.dia)
+![stateChannel Diagram](./stateChannels.png)
 
 ### the Consumers Perspective
 
