@@ -11,6 +11,9 @@ they will be released once this channel is closed again.
   in which the recipient can provide a balanceProof signed by the spender.
 
 * The recipient can always withdraw tokens, providing a valid balanceProof signed by the recipient
+
+
+
 (or very similar to this)
 
 
