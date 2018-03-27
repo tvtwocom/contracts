@@ -51,13 +51,11 @@ with the updated balance for this contentCreator, that is published/sent to the 
 
 ### the advertisers perspective
 
-the advertiser would have no incentive to pay once its ad has been watched, therefor if he would open a channel with us,
-we should not expect to receive tokens. An advertiser would pay in advance, trusting us that we view its ad or repay 
-according to the ToS.
+the advertiser would have no incentive to pay once its ad has been watched, therefor an advertiser would pay in 
+advance trusting us that we view its ad or repay hima ccording to the ToS.
 
-* the Advertiser puts tokens into the TvTwoManager contract, as a balance for ads.
-* When we need tokens we can withdraw tokens from the TvTwoManager, along with a list of ads.tokensDelta
-  the balances of the ads will be updated.
+* the Advertiser opens a channels with us and signes a balanceProof or just transfers tokens to us directly.
+* When we need tokens we can withdraw tokens from that channel.
 * we have to keep an off-chain database of balances for ads, in sync with all the views and balanceProofs
 
 ### TvTwos perspective
@@ -65,16 +63,28 @@ according to the ToS.
 We have to keep record of balanceProofs, the paywall server contains one or several private keys to ethereum addresses, 
 to sign balanceProofs, if one gets into the wrong hands all tokens in all its channels can be stolen.
 
-Advertisers and ContentCreators would have to trust us that we are fair
+* Advertisers and ContentCreators would have to trust us that we are fair
 
-Most of the busines logic lives in the paywall, and we are in control of flow of TvTwoCoins, besides traditional trading.
+* Most of the busines logic lives in the paywall a traditional server, and we are in control 
+of flow of TvTwoCoins, besides traditional trading.
 
+* We can in regular intervalls, publish hashes of our protocls on the blockchain(ipfs links for example) and publish them.
+  that would make our doings transparent, and whover wants to put in the effort can check if they are screwed over.
+  We are still the authority generating and signing the server logs/protocolls but we can't alter the already published logs,
+  since that would result in a differnt hash value that the one that is savely and publicly stored on chain.
+  
 ## conclusion
 
 I think implementing this Smart Contract wise is easy,
 
-while the uRaiden-Proxy software seems to be a bit flimsy,
-all examples ended up in some unusable states after some experimenting wiht them.
+But many things the TvTwoManager was expected to handle are now part of the paywall.
 
+If you look at the graphic, you see that everything is very centralized around the paywall.
+But if we deliver streaming content the only source of truth about who watched what is the server
+delivering them.
+
+
+the uRaiden-Proxy software seems to be a bit flimsy,
+all examples ended up in some unusable states after some experimenting wiht them.
 I expect this to improve in the near future.
 
