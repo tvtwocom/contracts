@@ -460,37 +460,38 @@ contract RaidenMicroTransferChannels {
         uint32 _open_block_number,
         uint192 _balance,
         bytes _balance_msg_sig)
-        public
-        view
+      public
+      view
         returns (address)
     {
-        // The variable names from below will be shown to the sender when signing
+      // The variable names from below will be shown to the sender when signing
         // the balance proof, so they have to be kept in sync with the Dapp client.
         // The hashed strings should be kept in sync with this function's parameters
         // (variable names and types).
         // ! Note that EIP712 might change how hashing is done, triggering a
         // new contract deployment with updated code.
-        bytes32 message_hash = keccak256(
-            keccak256(
+      bytes memory prefix = "\x19Ethereum Signed Message:\n32";
+
+      bytes32 message_hash = keccak256( prefix, keccak256(
+	    keccak256(
                 'string message_id',
                 'address receiver',
                 'uint32 block_created',
                 'uint192 balance',
                 'address contract'
-            ),
-            keccak256(
+            ), keccak256(
                 'Sender balance proof signature',
                 _receiver_address,
                 _open_block_number,
                 _balance,
                 address(this)
-            )
-        );
-
+	    ))
+       );
         // Derive address from signature
         address signer = ECVerify.ecverify(message_hash, _balance_msg_sig);
         return signer;
     }
+
 
     /// @dev Returns the receiver address extracted from the closing signature.
     /// Works with eth_signTypedData https://github.com/ethereum/EIPs/pull/712.

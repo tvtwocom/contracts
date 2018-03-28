@@ -1,5 +1,7 @@
 const URaiden = artifacts.require('RaidenMicroTransferChannels')
+
 const BigNumber = require('bignumber.js')
+const eUtil = require('ethereumjs-util')
 
 channelFromEvent = event => ({
   openingBlock: event.blockNumber,
@@ -14,6 +16,37 @@ toChannelInfoObject = _channelInfo => ({
   closingBalance: _channelInfo.shift().toString(),
   withdrawnBalance:_channelInfo.shift().toString()
 })
+
+toHex = (_value) => {
+  value = _value.toString(16)
+  return '0'.repeat(value.length%2)+value
+}
+
+balanceProofHash = (balance) => {
+  const hash_header = web3.sha3( ''.concat(
+    'string message_id',
+    'address receiver',
+    'uint32 block_created',
+    'uint192 balance',
+    'address contract') ).replace(/^0x/, '')
+  const hash_values = web3.sha3(''.concat(
+    web3.toHex('Sender balance proof signature'),
+    balance.recepient.replace(/^0x/, ''),
+    web3.padLeft(balance.openBlock.toString(16), 8),
+    web3.padLeft(balance.balance.toString(16), 48),
+    balance.contractAddress.replace(/^0x/, '')), {encoding: 'hex'})
+	.replace(/^0x/, '')
+  
+  const msg_hash = web3.sha3('0x'.concat(
+    hash_header,
+    hash_values), {encoding: 'hex'})
+  return msg_hash
+}
+
+signBalanceProof = (balance) => {
+  const msg_hash = balanceProofHash(balance)
+  return web3.eth.sign(balance.spender,msg_hash)  
+}
 
 async function testTopUpChannel(uRaiden, ttc, channel, amount) {
   const {spender, recepient, openingBlock} = channel
@@ -113,5 +146,7 @@ module.exports = {
   testCreateChannel,
   testTopUpChannel,
   channelFromEvent,
-  toChannelInfoObject
+  toChannelInfoObject,
+  signBalanceProof,
+  balanceProofHash
 }
