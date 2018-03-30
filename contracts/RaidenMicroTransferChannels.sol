@@ -104,6 +104,7 @@ contract RaidenMicroTransferChannels {
         address indexed _trusted_contract_address,
         bool _trusted_status);
 
+    bytes prefix = "\x19Ethereum Signed Message:\n32";
 
     /*
      *  Constructor
@@ -470,7 +471,6 @@ contract RaidenMicroTransferChannels {
         // (variable names and types).
         // ! Note that EIP712 might change how hashing is done, triggering a
         // new contract deployment with updated code.
-      bytes memory prefix = "\x19Ethereum Signed Message:\n32";
 
       bytes32 message_hash = keccak256( prefix, keccak256(
 	    keccak256(
@@ -516,7 +516,7 @@ contract RaidenMicroTransferChannels {
         // (variable names and types).
         // ! Note that EIP712 might change how hashing is done, triggering a
         // new contract deployment with updated code.
-        bytes32 message_hash = keccak256(
+      bytes32 message_hash = keccak256(prefix, keccak256(
             keccak256(
                 'string message_id',
                 'address sender',
@@ -531,7 +531,7 @@ contract RaidenMicroTransferChannels {
                 _balance,
                 address(this)
             )
-        );
+      ));
 
         // Derive address from signature
         address signer = ECVerify.ecverify(message_hash, _closing_sig);

@@ -66,7 +66,7 @@ async function migrate(owner, recepient, challengePeriod = 500) {
   await ttc.setTvTwoManager(recepient, {from: owner})
   assert.equal(await ttc.ttm(), recepient, 'TTC has wrong TvTwoManger')
   TvTwoCoin.link(URaiden)
-  
+  URaiden.link(TvTwoCoin)
   return {ttc, ttm, uRaiden}
 }
 

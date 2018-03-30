@@ -6,7 +6,9 @@ const eUtil = require('ethereumjs-util')
 channelFromEvent = event => ({
   openingBlock: event.blockNumber,
   spender: event.args._sender_address,
-  recepient: event.args._receiver_address
+  recepient: event.args._receiver_address,
+  contractAddress: event.address,
+  balance: 0
 })
 
 toChannelInfoObject = _channelInfo => ({
@@ -32,7 +34,7 @@ balanceProofHash = (balance) => {
   const hash_values = web3.sha3(''.concat(
     web3.toHex('Sender balance proof signature'),
     balance.recepient.replace(/^0x/, ''),
-    web3.padLeft(balance.openBlock.toString(16), 8),
+    web3.padLeft(balance.openingBlock.toString(16), 8),
     web3.padLeft(balance.balance.toString(16), 48),
     balance.contractAddress.replace(/^0x/, '')), {encoding: 'hex'})
 	.replace(/^0x/, '')
@@ -47,6 +49,26 @@ signBalanceProof = (balance) => {
   const msg_hash = balanceProofHash(balance)
   return web3.eth.sign(balance.spender,msg_hash)  
 }
+
+generateClosingSig = async (channel) => {
+  const header = web3.sha3(''.concat(
+    'string message_id',
+    'address sender',
+    'uint32 block_created',
+    'uint192 balance',
+    'address contract'        
+  ))
+  const content = web3.sha3(''.concat(
+    web3.toHex('Receiver closing signature'),
+    channel.spender.replace(/^0x/,''),
+    web3.padLeft(channel.openingBlock.toString(16),8),
+    web3.padLeft(channel.balance.toString(16), 48),
+    channel.contractAddress.replace(/^0x/,'')
+  ), {encoding: 'hex'})
+  const msg = web3.sha3(web3.toHex(header).concat(content.replace(/^0x/,'')), {encoding: 'hex'})
+  return  web3.eth.sign(channel.recepient, msg)
+}
+
 
 async function testTopUpChannel(uRaiden, ttc, channel, amount) {
   const {spender, recepient, openingBlock} = channel
@@ -86,6 +108,36 @@ async function testTopUpChannel(uRaiden, ttc, channel, amount) {
 		 .add(amount).toString(),
 		 postChannelInfo.deposit, `ChannelInfo Deposit wrong`)
     return { ...channel, postChannelInfo}
+}
+
+async function createChannel(uRaiden, ttc, spender, recepient, amount) {
+  const data = spender.concat(recepient.replace('0x',''))
+  depositResponse = await ttc._transfer(uRaiden.address, amount, data, {from: spender})
+
+  const channelCreatedEvent = depositResponse.logs.filter(entrie => entrie.event == 'ChannelCreated')[0]
+  assert.equal(channelCreatedEvent.args._sender_address, spender, 'ChannelCreated sender')
+  assert.equal(channelCreatedEvent.args._receiver_address, recepient, 'ChannelCreated receiver')
+  assert.equal(channelCreatedEvent.args._deposit, amount.toString())
+  const channel = channelFromEvent(channelCreatedEvent)
+  const channelInfo = await uRaiden.getChannelInfo(
+    channel.spender,
+    channel.recepient,
+    channel.openingBlock
+  ).then(toChannelInfoObject)
+  assert.equal(channelInfo.deposit, amount.toString())
+  return { ...channel, channelInfo}
+}
+
+async function getChannelInfos(channels) {
+  await Promise.all(Object.keys(channels).map(async  role => {
+    const channel = channels[role]
+    channel.channelInfo =
+      await uRaiden.getChannelInfo(channel.spender,
+    				   channel.recepient,
+    				   channel.openingBlock)
+      .then(toChannelInfoObject)
+  }))
+
 }
 
 async function testCreateChannel(uRaiden, ttc, spender, amount) {
@@ -142,11 +194,73 @@ async function testCreateChannel(uRaiden, ttc, spender, amount) {
   }
 }
 
+
+async function tesCooperativeClose(uRaiden, ttc, channel) {
+  channel.closingSig = await generateClosingSig(channel)
+  const result = await uRaiden.cooperativeClose(
+    channel.recepient,
+    channel.openingBlock,
+    channel.balance,
+    channel.sig,
+    channel.closingSig
+  )
+  const settleEvents = result.logs.filter(e => e.event == 'ChannelSettled')
+  assert.equal(settleEvents.length, 1, 'should evoke a settle event')
+  const transferEvents = result.logs.filter(e => e.event == 'Transfer')
+  assert.equal(transferEvents.length, 2, 'should be 2 transfer events')
+  // TODO be more certain
+  return result
+}
+
+async function testWatchOriginalContent(uRaiden, ttc, channels) {
+
+  channels.viewerOut.balance += 1
+  channels.viewerOut.sig = signBalanceProof(channels.viewerOut)
+  assert.equal(await uRaiden.extractBalanceProofSignature(
+    channels.viewerOut.recepient,
+    channels.viewerOut.openingBlock,
+    channels.viewerOut.balance,
+    channels.viewerOut.sig,
+  ).then(i => i.toLowerCase()), channels.viewerOut.spender.toLowerCase(),'viewer signature invalid')
+  
+  // paywall forwards this to content creator
+  channels.contentCreator.balance += 1
+  channels.contentCreator.sig = signBalanceProof(channels.contentCreator)     // signed by TvTwo
+  assert.equal(await uRaiden.extractBalanceProofSignature(
+    channels.contentCreator.recepient,
+    channels.contentCreator.openingBlock,
+    channels.contentCreator.balance,
+    channels.contentCreator.sig
+  ).then(i => i.toLowerCase()), channels.contentCreator.spender.toLowerCase(),'contentCreator signature invalid')
+
+}
+
+async function testWatchAd(uRaiden, ttc, channels) {
+  channels.viewerIn.balance += 3
+  channels.viewerIn.sig = signBalanceProof(channels.viewerIn) // signe
+  assert.equal(await uRaiden.extractBalanceProofSignature(
+    channels.viewerIn.recepient,
+    channels.viewerIn.openingBlock,
+    channels.viewerIn.balance,
+    channels.viewerIn.sig
+  ).then(i => i.toLowerCase()), channels.viewerIn.spender.toLowerCase(),'viewer signature invalid')
+
+}
+
+async function testWithdrawl(uRaiden, ttc, channel) {
+  const result = await uRaiden.withdraw(channel.openingBlock, channel.balance, channel.sig, {from: channel.recepient})
+}
+
 module.exports = {
   testCreateChannel,
   testTopUpChannel,
   channelFromEvent,
   toChannelInfoObject,
   signBalanceProof,
-  balanceProofHash
+  balanceProofHash,
+  createChannel,
+  testWatchOriginalContent,
+  testWatchAd,
+  tesCooperativeClose,
+  testWithdrawl
 }
