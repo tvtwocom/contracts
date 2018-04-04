@@ -1,7 +1,7 @@
 const TvTwoCoin = artifacts.require('TvTwoCoin')
 const assert = require('assert')
 const BigNumber = require('bignumber.js')
-const { testWillThrow } = require('./utils/general')
+const { testWillThrow, timeTravel } = require('./utils/general')
 const { testBuyTokens, testSellTokens, testSetAllowance } = require('./utils/ttc')
 
 const expectedContractData = {
@@ -152,5 +152,39 @@ describe('when buying and selling', () => {
     it('should set allowances', async () => {
       await testSetAllowance(ttc, approver, spender, approveAmount)
     })
+
+    it('should throw when calling sell after vesting period',async () => {
+      const buyAmountEth = new BigNumber(1e18)
+      const secIntoFuture = 31536000 // 1 year
+      await testBuyTokens(ttc, trader, buyAmountEth)
+      const tokenBalance = await ttc.balanceOf(trader)
+  
+      for(var i = 1; i <= 3; i++) {	
+	const timeIncrement = await timeTravel(secIntoFuture)
+
+	if(i < 3) 
+	  await testSellTokens(ttc, trader, tokenBalance/4)
+	else {
+	  assert(timeIncrement + Date.now()/1000 >= await ttc.vestingPeriod(), 'not after vesting period')
+	  await testWillThrow(testSellTokens,
+			    [ttc, trader, tokenBalance/4])
+	}
+      }
+    })
+
+    it('should throw when calling buy after vesting period', async () => {
+      const buyAmountEth = new BigNumber(1e18)
+      const secIntoFuture = 31536000 // 1 year
+      for(var i = 1; i <= 3; i++) {
+	const timeIncrement = await timeTravel(secIntoFuture)
+    	if(i < 3)
+    	  await testBuyTokens(ttc, trader, buyAmountEth)
+    	else {
+	  assert(timeIncrement + Date.now()/1000 >= await ttc.vestingPeriod(), 'not after vesting period')
+	  await testWillThrow(testBuyTokens, [ttc, trader, buyAmountEth])
+	}
+      }
+    })
+  
   })
 })

@@ -31,10 +31,13 @@ contract TvTwoCoin is Ownable, StandardToken {
   uint256 public totalSupply = 666666667e18;
   uint256 public weiTokenRate = 5;
   uint256 public companyShare = 15;
-
+  uint256 public vestingPeriod = 3 years;
+  
   function TvTwoCoin()
     public
   {
+    vestingPeriod += now;
+    
     uint256 _companyAmount = totalSupply
       .mul(companyShare)
       .div(100);
@@ -67,6 +70,7 @@ contract TvTwoCoin is Ownable, StandardToken {
   // doesnt need to work since this isnt final implementation
   function buy()
     public
+    inVestingPeriod
     payable
     returns (bool)
   {
@@ -84,6 +88,7 @@ contract TvTwoCoin is Ownable, StandardToken {
     uint _tokenAmount
   )
     public
+    inVestingPeriod
     returns(bool)
   {
     balances[msg.sender] = balances[msg.sender]
@@ -172,6 +177,11 @@ contract TvTwoCoin is Ownable, StandardToken {
     _;
   }
 
+  modifier inVestingPeriod() {
+    require(now < vestingPeriod);
+    _;
+  }
+  
   /// @notice deposit tokens with the channelManager for the ttm
   /// @param _value amount of tokens
   

@@ -1,5 +1,6 @@
 const assert = require('assert')
 const BigNumber = require('bignumber.js')
+const fetch = require('whatwg-fetch').fetch
 
 const TvTwoCoin = artifacts.require('TvTwoCoin')
 const URaiden = artifacts.require('RaidenMicroTransferChannels')
@@ -70,11 +71,29 @@ async function migrate(owner, recepient, challengePeriod = 500) {
   return {ttc, ttm, uRaiden}
 }
 
+async function timeTravel(secIntoFuture) {
+  const result = await fetch(web3.currentProvider.host, {
+    method: 'POST',
+    headers: {
+      'content-type': 'application/json'
+    },
+    body: JSON.stringify({
+      jsonrpc: "2.0",
+      method: "evm_increaseTime",
+      params: [secIntoFuture]
+    })}) // curl -X POST --data '{"jsonrpc":"2.0","method":"evm_increaseTime","params":[31536000]}' localhost:8545
+  assert.equal(result.status, 200)
+
+  const timeIncrement = await result.json().then( t => t.result)
+  return timeIncrement
+}
+
 module.exports = {
   testWillThrow,
   gasPrice,
   getReceipt,
   getEtherBalance,
   zeroAddress,
-  migrate
+  migrate,
+  timeTravel
 }
