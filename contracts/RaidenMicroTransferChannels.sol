@@ -211,9 +211,8 @@ contract RaidenMicroTransferChannels {
         createChannelPrivate(_sender_address, _receiver_address, _deposit);
 
         // transferFrom deposit from msg.sender to contract
-        // ! needs prior approval from _sender_address
-	// ! changed to be compliant with managed workflow
-        require(token.transferFrom(_sender_address, address(this), _deposit));
+        // ! needs prior approval from msg.sender
+        require(token.transferFrom(msg.sender, address(this), _deposit));
     }
 
     /// @notice Increase the channel deposit with `_added_deposit`.
