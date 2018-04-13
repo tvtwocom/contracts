@@ -3,6 +3,13 @@ const BigNumber = require('bignumber.js')
 
 const { testBuyTokens, testSetAllowance } = require('./ttc')
 
+const testCreateViewer = async (uRaiden, ttc, ttm,  owner, viewer, amount) => {
+  const result = await ttm.createViewer(viewer, amount, {from: owner})
+  const allowedValue = await ttc.allowance(viewer, uRaiden.address).then(v => v.toString())
+  assert.equal(allowedValue, amount.toString())
+  return result
+}
+
 const testSetTvTwoCoin = async (ttm, sender, ttcAddress) => {
   const preTtc = await ttm.ttc()
   await ttm.setTvTwoCoin(ttcAddress, {
@@ -210,5 +217,6 @@ module.exports = {
   testCreateVideo,
   testReachCheckpoint,
   testSetMinAllowance,
-  testSetupTtcBalancesAllowances
+  testSetupTtcBalancesAllowances,
+  testCreateViewer
 }

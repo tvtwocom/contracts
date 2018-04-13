@@ -195,7 +195,7 @@ async function testCreateChannel(uRaiden, ttc, spender, amount) {
 }
 
 
-async function tesCooperativeClose(uRaiden, ttc, channel) {
+async function testCooperativeClose(uRaiden, ttc, channel) {
   channel.closingSig = await generateClosingSig(channel)
   const result = await uRaiden.cooperativeClose(
     channel.recepient,
@@ -261,6 +261,6 @@ module.exports = {
   createChannel,
   testWatchOriginalContent,
   testWatchAd,
-  tesCooperativeClose,
+  testCooperativeClose,
   testWithdrawl
 }

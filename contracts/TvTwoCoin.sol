@@ -2,29 +2,10 @@ pragma solidity ^0.4.18;
 
 import "zeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
 import "zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "./lib/manage.sol";
 
-contract ChannelManagerInterface {
-  function tokenFallback(
-			 address _sender_address,
-			 uint256 _deposit,
-			 bytes _data
-			 )
-    external;
-  function createChannel(
-			 address _receiver_address,
-			 uint192 _deposit
-			 )
-    external;
-  function createChannelDelegate(
-				 address _sender_address,
-				 address _receiver_address,
-				 uint192 _deposit
-				 )
-    external;
 
-}
-
-contract TvTwoCoin is Ownable, StandardToken {
+contract TvTwoCoin is StandardToken, UsingChannelManager {
   string public name = "TV-TWO";
   string public symbol = "TTV";
   uint256 public decimals = 18;
@@ -100,33 +81,16 @@ contract TvTwoCoin is Ownable, StandardToken {
     return true;
   }
 
-  function isContract(address addr)
-    view
-    internal
-    returns (bool)
-  {
-    uint size;
-    assembly { size := extcodesize(addr) }
-    return size > 0;
-  }
   
-  ChannelManagerInterface public channelManager = ChannelManagerInterface(0x0);
-  function setChannelManager(address _channelManagerContract)
-    onlyOwner
-    public
-  {
-    if(isContract(_channelManagerContract) && _channelManagerContract != address(channelManager)) {
-      channelManager = ChannelManagerInterface(_channelManagerContract);
-    }
-  }
 
   address public ttm = 0x0;
-  function setTvTwoManager(address _offlineSigningReceiver)
+  function setTvTwoManager(address _ttm)
     onlyOwner
     public
   {
-    if(!isContract(_offlineSigningReceiver) && ttm != _offlineSigningReceiver) {
-      ttm = _offlineSigningReceiver;
+    require(isContract(_ttm));
+    if(ttm != _ttm) {
+      ttm = _ttm;
     }
   }
 
@@ -151,7 +115,7 @@ contract TvTwoCoin is Ownable, StandardToken {
     bytes memory empty;
     success = super.transfer(_to, _value);
     if(success && isContract(_to)) {
-      ChannelManagerInterface(_to).tokenFallback(msg.sender, _value, empty);
+      ChannelManagerI(_to).tokenFallback(msg.sender, _value, empty);
     }
   }
   
@@ -167,13 +131,13 @@ contract TvTwoCoin is Ownable, StandardToken {
   {
     success = super.transfer(_to, _value);
     if(success && isContract(_to)) {
-      ChannelManagerInterface(_to).tokenFallback(msg.sender, _value, _data);
+      ChannelManagerI(_to).tokenFallback(msg.sender, _value, _data);
     }
   }
   
   modifier isInitialized() {
+    /* require(channelManager != ChannelManagerI(0x0)); */
     require(ttm != 0x0);
-    require(channelManager != ChannelManagerInterface(0x0));
     _;
   }
 
@@ -181,21 +145,44 @@ contract TvTwoCoin is Ownable, StandardToken {
     require(now < vestingPeriod);
     _;
   }
-  
-  /// @notice deposit tokens with the channelManager for the ttm
+
+  modifier isTTM() {
+    require(msg.sender == ttm);
+    _;
+  }
+  /// @notice deposit tokens with the channelManager for the paywall
+  /// can only be called by trusted Contracts
   /// @param _value amount of tokens
-  
+  /// @notice this would mean owner can replace channelManager with a wallet contract, stealing anyones coins
   function deposit(
-    uint256 _value
-  )
+		   address spender,
+		   address recipient,
+		   uint192 _value
+		   )
     isInitialized
+    isTTM
     public
     returns (bool) {
-    require(_value < 2**192);
-    super.transfer(this, _value);
-    if(this.approve(channelManager, _value)) {
-      channelManager.createChannelDelegate(msg.sender, ttm, uint192(_value));
-    }
+    allowed[spender][channelManager] = _value;
+    channelManager.createChannelDelegate(spender, recipient, uint192(_value)); 
+    return true;
   }
 
+
+  /// @notice ttm calls this when a new user is created
+  /// it won't affect addresses already owning tokens
+  /// now channelManager can create channels once this address owns tokens
+  /// in case of fraud by owner, anyone who is going to recive tokens to a new address can check if any previous channel manager already has an allowance without gasCost, and could change this by calling approve(channelManager, 0)
+  function createViewer(address _viewer, uint192 _value)
+    isInitialized
+    isTTM
+    external
+    returns (bool success)
+  {
+    require(_viewer != address(0x0));
+    require(balances[_viewer] == 0);
+    allowed[_viewer][channelManager] = _value;
+    return true;      
+  }
+  
 }

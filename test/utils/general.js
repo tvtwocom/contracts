@@ -12,12 +12,15 @@ const zeroAddress = `0x${'0'.repeat(40)}`
 
 const testWillThrow = async (fn, args) => {
   try {
-    await fn(...args)
-    assert(false, 'the contract should throw here')
+    if(args instanceof Array)
+      await fn(...args)
+    else
+      await fn
+    assert.fail('the contract should throw here')
   } catch (error) {
     assert(
-      // TODO: is this actually ok to check for revert here? need to investigate more...
-      /invalid opcode|revert/.test(error),
+      // DONE: have a look at node_modules/zeppelin-solidity/test/helpers/assertRevert.js
+      /invalid opcode|revert/.test(error.message),
       `the error message should be invalid opcode, the error was ${error}`
     )
   }
@@ -57,17 +60,23 @@ async function migrate(owner, recepient, challengePeriod = 500) {
   const uRaiden = await URaiden.new(
      ttc.address,
      challengePeriod,
-    [ttc.address],
+    [ttc.address, ttm.address],
     {from: owner}
   )
 
-  await ttc.setChannelManager(uRaiden.address, {from: owner})
-  assert.equal(await ttc.channelManager(), uRaiden.address, 'TTC has wrong ChannelManager')
+  await Promise.all([ttc,ttm].map(async contract => {
+    await contract.setChannelManager(uRaiden.address, {from: owner})
+    assert.equal(await contract.channelManager(), uRaiden.address, 'TTC has wrong ChannelManager')
+  }))
 
-  await ttc.setTvTwoManager(recepient, {from: owner})
-  assert.equal(await ttc.ttm(), recepient, 'TTC has wrong TvTwoManger')
+  await ttc.setTvTwoManager(ttm.address, {from: owner})
+  assert.equal(await ttc.ttm(), ttm.address, 'TTC has wrong TvTwoManger')
+
+  ttm.setTvTwoCoin(ttc.address, {from: owner})
+  assert.equal(await ttm.ttc(), ttc.address)
   TvTwoCoin.link(URaiden)
   URaiden.link(TvTwoCoin)
+  TvTwoManager.link(URaiden)
   return {ttc, ttm, uRaiden}
 }
 

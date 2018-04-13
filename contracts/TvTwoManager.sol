@@ -2,39 +2,18 @@ pragma solidity ^0.4.18;
 
 import "zeppelin-solidity/contracts/math/SafeMath.sol";
 import "zeppelin-solidity/contracts/ownership/Ownable.sol";
-
+import './TokenInterface.sol';
+import './lib/manage.sol';
 
 // used to mint from TvTwoCoin
-contract TvTwoCoinInterface {
-  function transferFrom(
-    address _from,
-    address _to,
-    uint256 _value
-  )
-    public
-    returns (bool)
-  {}
-
-  function allowance(
-    address _owner,
-    address _spender
-  )
-    public
-    view
-    returns (uint256)
-  {}
-
-  function balanceOf(
-    address _owner
-  )
-    public
-    view
-    returns (uint256 balance)
-  {}
+contract TvTwoCoinInterface is Token {
+  function createViewer(address _viewer, uint192 _value)
+    external
+    returns (bool success);
 }
 
 
-contract TvTwoManager is Ownable {
+contract TvTwoManager is UsingChannelManager {
   using SafeMath for uint256;
 
   event Checkpoint (
@@ -137,5 +116,30 @@ contract TvTwoManager is Ownable {
         );
     Checkpoint(_videoHash, _relevanceScore, msg.sender);
     return true;
+  }
+  
+  function createViewer(address _viewer, uint192 _value)
+    ttcInitialized
+    onlyOwner
+    public
+    returns (bool success)
+  {
+    return ttc.createViewer(_viewer, _value);
+    /* if(ttc.createViewer(_viewer, _value)) { */
+    /*   uRaiden.createChannelDelegate(paywallAddress, _viewer, _value); */
+
+
+    /* } */
+  }
+
+  address public paywallAddress;
+  //TODO setter
+  
+  function setupViewer(address _viewer, uint192 _value)
+    isInitialized
+    onlyOwner
+    public
+  {
+    channelManager.createChannelDelegate(_viewer, owner, _value);
   }
 }
