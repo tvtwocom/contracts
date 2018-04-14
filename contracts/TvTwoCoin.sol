@@ -24,6 +24,13 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTM
     return managed[_user];
   }
 
+  function setManged(bool state)
+    public
+  {
+    managed[msg.sender] = state;
+  }
+
+
   function TvTwoCoin()
     public
   {
@@ -180,5 +187,5 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTM
     managed[_viewer] = true;
     return true;      
   }
-  
+
 }
