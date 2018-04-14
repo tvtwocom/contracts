@@ -5,7 +5,7 @@ import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./lib/manage.sol";
 
 
-contract TvTwoCoin is StandardToken, UsingChannelManager {
+contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTManager {
   string public name = "TV-TWO";
   string public symbol = "TTV";
   uint256 public decimals = 18;
@@ -13,7 +13,17 @@ contract TvTwoCoin is StandardToken, UsingChannelManager {
   uint256 public weiTokenRate = 5;
   uint256 public companyShare = 15;
   uint256 public vestingPeriod = 3 years;
-  
+
+  mapping (address =>  bool) managed;
+
+  function isManaged(address _user)
+    public
+    view
+    returns (bool)
+  {
+    return managed[_user];
+  }
+
   function TvTwoCoin()
     public
   {
@@ -82,28 +92,6 @@ contract TvTwoCoin is StandardToken, UsingChannelManager {
   }
 
   
-
-  address public ttm = 0x0;
-  function setTvTwoManager(address _ttm)
-    onlyOwner
-    public
-  {
-    require(isContract(_ttm));
-    if(ttm != _ttm) {
-      ttm = _ttm;
-    }
-  }
-
-  /* function toBytes(address[2] x) // I hate this but there seems to be no better way without using assembly */
-  /*   pure */
-  /*   public */
-  /*   returns (bytes b) */
-  /* { */
-  /*   b = new bytes(40); */
-  /*   for (uint i = 0; i < 40; i++) */
-  /*     b[i] = byte(uint8(uint(x[i/20]) / (2**(8*(20 - i/20))))); */
-  /* } */
-
   /// @notice send `_value` token to `_to` from `msg.sender`.
   /// @dev regarding ERC223, transfer should call tokenFallback when sending tokens to contracts
   /// @param _to The address of the recipient.
@@ -135,36 +123,45 @@ contract TvTwoCoin is StandardToken, UsingChannelManager {
     }
   }
   
-  modifier isInitialized() {
-    /* require(channelManager != ChannelManagerI(0x0)); */
-    require(ttm != 0x0);
-    _;
-  }
-
   modifier inVestingPeriod() {
     require(now < vestingPeriod);
     _;
   }
 
-  modifier isTTM() {
-    require(msg.sender == ttm);
-    _;
+  function toBytes(address[2] x) // I hate this but there seems to be no better way without using assembly
+    pure
+    public
+    returns (bytes b)
+  {
+    b = new bytes(40);
+    for (uint i = 0; i < 40; i++)
+      b[i] = byte(uint8(uint(x[i/20]) / (2**(8*(19 - i%20)))));
   }
+
+
+  event DEBUG(address spender, address paywall, bytes data);
+
   /// @notice deposit tokens with the channelManager for the paywall
   /// can only be called by trusted Contracts
   /// @param _value amount of tokens
   /// @notice this would mean owner can replace channelManager with a wallet contract, stealing anyones coins
   function deposit(
 		   address spender,
-		   address recipient,
 		   uint192 _value
 		   )
-    isInitialized
     isTTM
-    public
-    returns (bool) {
-    allowed[spender][channelManager] = _value;
-    channelManager.createChannelDelegate(spender, recipient, uint192(_value)); 
+    cmIsInitialized
+    paywallIsInitialized
+    external
+    returns (bool success) {
+    require(spender != 0x0);
+    require(managed[spender]);
+    /* DEBUG(spender, paywall, toBytes([spender, paywall])); */
+    balances[spender] = balances[spender].sub(_value);
+    balances[address(channelManager)] = balances[address(channelManager)].add( _value);
+    Transfer(spender, channelManager, _value);
+    channelManager.tokenFallback(spender, _value, toBytes([spender, paywall]));
+
     return true;
   }
 
@@ -173,15 +170,14 @@ contract TvTwoCoin is StandardToken, UsingChannelManager {
   /// it won't affect addresses already owning tokens
   /// now channelManager can create channels once this address owns tokens
   /// in case of fraud by owner, anyone who is going to recive tokens to a new address can check if any previous channel manager already has an allowance without gasCost, and could change this by calling approve(channelManager, 0)
-  function createViewer(address _viewer, uint192 _value)
-    isInitialized
+  function createViewer(address _viewer)
     isTTM
     external
     returns (bool success)
   {
     require(_viewer != address(0x0));
     require(balances[_viewer] == 0);
-    allowed[_viewer][channelManager] = _value;
+    managed[_viewer] = true;
     return true;      
   }
   

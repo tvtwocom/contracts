@@ -6,7 +6,8 @@ const BigNumber = require('bignumber.js')
 const { testWillThrow } = require('./utils/general')
 const { migrate } = require('./utils/general')
 const { testCreateViewer } = require('./utils/ttm')
-const { testCreateChannel, testTopUpChannel, testWatchOriginalContent, testWatchAd, signBalanceProof, channelFromEvent, toChannelInfoObject, balanceProofHash, createChannel, testCooperativeClose, testWithdrawl } = require('./utils/uRaiden')
+const { testCreateChannel, testTopUpChannel, testWatchOriginalContent, testWatchAd, signBalanceProof, channelFromEvent, toChannelInfoObject, balanceProofHash, createChannel, testCooperativeClose, testWithdrawl,  testDeposit
+ } = require('./utils/uRaiden')
 
 describe('StateChannels', () => {
   let uRaiden, ttc, ttm
@@ -82,7 +83,7 @@ describe('StateChannels', () => {
 
   })
 
-  it('createViewer sets allowance for Accounts without balance', async () => {
+  it('createViewer sets managed for Accounts without balance', async () => {
     const viewer = web3.eth.accounts[3]
     const amount = 10e18
     await testCreateViewer(uRaiden, ttc, ttm, owner, viewer, amount)
@@ -111,7 +112,7 @@ describe('StateChannels', () => {
 
     // setup viewer
     try {
-      await ttm.createViewer(accounts.viewer, 10e18, {from: owner})
+      await ttm.createViewer(accounts.viewer, {from: owner})
       channels.viewerIn = await createChannel(uRaiden, ttc, owner, accounts.viewer, amount)
     }catch(e) {console.log('viewer setup failed : ', e); throw e}
 
@@ -135,41 +136,47 @@ describe('StateChannels', () => {
     // 402 Payment required <-> Raiden Handshake
     // this gets delivered to the contentCreator 
 
-    await testWatchAd(uRaiden, ttc, channels)
+    // console.log('beginning :', await ttc.balanceOf(accounts.viewer).then(web3.toDecimal))
 
-    await testCooperativeClose(uRaiden, ttc, channels.viewerIn)
-    console.log(await ttc.balanceOf(accounts.viewer)
-		.then(web3.toDecimal), await ttc.allowance(accounts.viewer, uRaiden.address).then(web3.toDecimal))
-    await ttm.setupViewer(
-      accounts.viewer,
-      await ttc.balanceOf(accounts.viewer),
-      {from: owner}
-    )
+    await testWatchAd(uRaiden, ttc, channels)
     
+    await testCooperativeClose(uRaiden, ttc, channels.viewerIn)
+
+    // console.log('watched ad :', await ttc.balanceOf(accounts.viewer).then(web3.toDecimal))
+
+    channels.viewerOut = await testDeposit(uRaiden, ttc, ttm, 
+      accounts.viewer,
+      owner,
+      await ttc.balanceOf(accounts.viewer)
+    )
+
+    // console.log('deposited :', await ttc.balanceOf(accounts.viewer).then(web3.toDecimal))
+
     await Promise.all([
       testWatchOriginalContent(uRaiden, ttc, channels),
       testWatchOriginalContent(uRaiden, ttc, channels),
       testWatchOriginalContent(uRaiden, ttc, channels),
     ])
-
-    testWithdrawl(uRaiden, ttc, channels.advertiser)
-    
-    console.log(channels)
+    // testWithdrawl(uRaiden, ttc, channels.advertiser)
 
     await Promise.all(
-      Object.keys(channels).filter((key) => key != 'advertiser').map(
-	channel => tesCooperativeClose(uRaiden, ttc, channels[channel])
+      Object.keys(channels).filter((key) => !['advertiser', 'viewerIn'].includes(key)).map(
+	channel => testCooperativeClose(uRaiden, ttc, channels[channel])
       ))
-        
-    const viewerBalance = await ttc.balanceOf(accounts.viewer)
-    assert.equal(viewerBalance, amount*2, 'viewer balance wrong')
+    // console.log('watched content :', await ttc.balanceOf(accounts.viewer).then(web3.toDecimal))
 
+    const viewerBalance = await ttc.balanceOf(accounts.viewer).then(web3.toDecimal)
     const contentCreatorBalance = await ttc.balanceOf(accounts.contentCreator).then(web3.toDecimal)
+    const advertiserBalance =  await ttc.balanceOf(accounts.advertiser).then(web3.toDecimal)
+    
+    assert.equal(viewerBalance, 0, `viewer balance wrong : ${viewerBalance}`)
+
+
     assert.equal(contentCreatorBalance, amount*2+3, 'contentCreator balance wrong')
 
-    const advertiserBalance =  await ttc.balanceOf(accounts.advertiser).then(web3.toDecimal)
+    
     assert.equal(advertiserBalance, amount, 'advertiser balance wrong')
     console.log(JSON.stringify(channels,null,2))
 
-  })//.timeout(5000)
+  }).timeout(5000)
 })

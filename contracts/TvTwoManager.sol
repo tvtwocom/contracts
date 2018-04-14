@@ -2,15 +2,8 @@ pragma solidity ^0.4.18;
 
 import "zeppelin-solidity/contracts/math/SafeMath.sol";
 import "zeppelin-solidity/contracts/ownership/Ownable.sol";
-import './TokenInterface.sol';
 import './lib/manage.sol';
 
-// used to mint from TvTwoCoin
-contract TvTwoCoinInterface is Token {
-  function createViewer(address _viewer, uint192 _value)
-    external
-    returns (bool success);
-}
 
 
 contract TvTwoManager is UsingChannelManager {
@@ -31,7 +24,7 @@ contract TvTwoManager is UsingChannelManager {
   uint256 public minimumAllowance = 1e18;
   mapping (bytes32 => uint256) public videoIndex;
   Video[] public videos;
-  TvTwoCoinInterface public ttc;
+  TvTwoCoinI public ttc;
 
   modifier videoHashExists(bytes32 _videoHash) {
     require(videoIndex[_videoHash] > 0);
@@ -64,7 +57,7 @@ contract TvTwoManager is UsingChannelManager {
     onlyOwner
   {
     require(_tokenAddress != address(ttc));
-    ttc = TvTwoCoinInterface(_tokenAddress);
+    ttc = TvTwoCoinI(_tokenAddress);
   }
 
   function setMinimumAllowance(
@@ -118,13 +111,13 @@ contract TvTwoManager is UsingChannelManager {
     return true;
   }
   
-  function createViewer(address _viewer, uint192 _value)
+  function createViewer(address _viewer)
     ttcInitialized
     onlyOwner
     public
     returns (bool success)
   {
-    return ttc.createViewer(_viewer, _value);
+    return ttc.createViewer(_viewer);
     /* if(ttc.createViewer(_viewer, _value)) { */
     /*   uRaiden.createChannelDelegate(paywallAddress, _viewer, _value); */
 
@@ -132,14 +125,12 @@ contract TvTwoManager is UsingChannelManager {
     /* } */
   }
 
-  address public paywallAddress;
-  //TODO setter
-  
-  function setupViewer(address _viewer, uint192 _value)
-    isInitialized
+  function deposit(address _viewer, uint192 _value)
+    ttcInitialized
     onlyOwner
     public
   {
-    channelManager.createChannelDelegate(_viewer, owner, _value);
+    ttc.deposit(_viewer, _value);
   }
+  
 }

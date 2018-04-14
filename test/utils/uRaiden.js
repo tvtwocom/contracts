@@ -140,6 +140,64 @@ async function getChannelInfos(channels) {
 
 }
 
+async function testDeposit(uRaiden, ttc, ttm, spender, owner, amount) {
+
+  const preBalance = {
+    spender: await ttc.balanceOf(spender),
+    recipient: await ttc.balanceOf(await ttc.paywall()),
+    channelManager: await ttc.balanceOf(uRaiden.address)
+  }
+
+  const result = await ttm.deposit(
+    spender,
+    amount,
+    {from: owner}
+  )
+
+  const postBalance = {
+    spender: await ttc.balanceOf(spender),
+    recipient: await ttc.balanceOf(await ttc.paywall()),
+    channelManager: await ttc.balanceOf(uRaiden.address)
+  }
+
+  // sets balances
+  assert.equal(postBalance.spender.toString(), preBalance.spender.sub(amount).toString(), 'spender balance should have decreased')
+  assert.equal(postBalance.recipient.toString(), preBalance.recipient.toString(), 'recipient balance should be unaltered')
+  assert.equal(postBalance.channelManager.toString(), preBalance.channelManager.add(amount).toString(), 'channelManager balance should have increased')
+
+  // emits correct channelCreated and Transfer event
+  
+  const channelCreatedEvents = result.logs
+	.filter( l => l.event == 'ChannelCreated')
+  const transferEvents = result.logs
+	.filter( l => l.event == 'Transfer')
+
+  assert.equal(channelCreatedEvents.length, 1, 'not one ChannelCreated Event')
+  assert.equal(transferEvents.length, 1, 'not one Transfer Event')
+
+  const ccEvent = channelCreatedEvents[0].args
+  const tEvent = transferEvents[0].args
+
+  assert.equal(ccEvent._sender_address, spender, 'spender wrong')
+  assert.equal(tEvent.from, spender, 'not from spender')
+  assert.equal(ccEvent._receiver_address, await ttc.paywall(), 'receiver wrong')
+  assert.equal(tEvent.to, uRaiden.address, 'not to channelManager')
+  
+  assert.equal(ccEvent._deposit.toString(), amount.toString(), 'deposit wrong')
+  assert.equal(tEvent.value.toString(), amount.toString(), 'wrong amount transfered')
+  
+  // return channel (side effect: confirms that channel exists)
+  
+  const channel = channelFromEvent(channelCreatedEvents[0])
+  const channelInfo = await uRaiden.getChannelInfo(
+    channel.spender,
+    channel.recepient,
+    channel.openingBlock
+  ).then(toChannelInfoObject)
+  assert.equal(channelInfo.deposit, amount.toString())
+  return { ...channel, channelInfo}
+}
+
 async function testCreateChannel(uRaiden, ttc, spender, amount) {
   try {
     const recepient = await ttc.ttm()
@@ -204,6 +262,7 @@ async function testCooperativeClose(uRaiden, ttc, channel) {
     channel.sig,
     channel.closingSig
   )
+
   const settleEvents = result.logs.filter(e => e.event == 'ChannelSettled')
   assert.equal(settleEvents.length, 1, 'should evoke a settle event')
   const transferEvents = result.logs.filter(e => e.event == 'Transfer')
@@ -262,5 +321,6 @@ module.exports = {
   testWatchOriginalContent,
   testWatchAd,
   testCooperativeClose,
-  testWithdrawl
+  testWithdrawl,
+  testDeposit
 }

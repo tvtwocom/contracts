@@ -1,6 +1,7 @@
 pragma solidity ^0.4.18;
 
 import "zeppelin-solidity/contracts/ownership/Ownable.sol";
+import '../TokenInterface.sol';
 
 contract Utils {
   function isContract(address addr)
@@ -10,6 +11,17 @@ contract Utils {
     assembly { size := extcodesize(addr) }
     return size > 0;
   }
+}
+// used to mint from TvTwoCoin
+contract TvTwoCoinI is Token {
+  function createViewer(address _viewer)
+    external
+    returns (bool success);
+
+    function deposit(address spender, uint192 _value)
+      external
+      returns (bool success);
+
 }
 
 contract ChannelManagerI {
@@ -37,10 +49,16 @@ contract ChannelManagerI {
 contract UsingChannelManager is Ownable, Utils {
   ChannelManagerI public channelManager = ChannelManagerI(0x0);
 
-  modifier isInitialized() {
+  modifier cmIsInitialized() {
     require(channelManager != ChannelManagerI(0x0));
     _;
   }
+
+  modifier isCM() {
+    require(msg.sender == address(channelManager));
+    _;
+  }
+
   
   function setChannelManager(address _new)
     onlyOwner
@@ -57,11 +75,17 @@ contract UsingChannelManager is Ownable, Utils {
 contract UsingTTManager is Ownable, Utils {
   address public ttm = 0x0;
 
-  modifier isInitialized() {
+  modifier ttmIsInitialized() {
     require(ttm != 0x0);
     _;
   }
-  
+
+  modifier isTTM() {
+    require(ttm != 0x0);
+    require(msg.sender == ttm);
+    _;
+  }
+
   function setTTManager(address _new)
     onlyOwner
     public
@@ -69,6 +93,24 @@ contract UsingTTManager is Ownable, Utils {
     require(isContract(_new));
     if(_new != ttm && _new != 0x0) {
       ttm = _new;
+    }
+  }
+}
+
+contract UsingPaywall is Ownable {
+  address public paywall = 0x0;
+
+  modifier paywallIsInitialized() {
+    require(paywall != 0x0);
+    _;
+  }
+  
+  function setPaywall(address _new)
+    onlyOwner
+    public
+  {
+    if(_new != paywall && _new != 0x0) {
+      paywall = _new;
     }
   }
 }
