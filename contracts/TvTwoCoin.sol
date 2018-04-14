@@ -16,6 +16,8 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTM
 
   mapping (address =>  bool) managed;
 
+  event IsManaged(address user, bool state);
+  
   function isManaged(address _user)
     public
     view
@@ -27,7 +29,9 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTM
   function setManged(bool state)
     public
   {
+    require(managed[msg.sender] != state);
     managed[msg.sender] = state;
+    IsManaged(msg.sender, state);
   }
 
 
@@ -185,6 +189,7 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTM
     require(_viewer != address(0x0));
     require(balances[_viewer] == 0);
     managed[_viewer] = true;
+    IsManaged(_viewer, true);
     return true;      
   }
 
