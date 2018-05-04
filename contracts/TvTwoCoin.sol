@@ -139,16 +139,35 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTM
     _;
   }
 
-  function toBytes(address[2] x) // I hate this but there seems to be no better way without using assembly
-    pure
+  function join(address address1, address address2, uint32 block_number)   pure
     public
-    returns (bytes b)
+    returns (bytes)
   {
-    b = new bytes(40);
-    for (uint i = 0; i < 40; i++)
-      b[i] = byte(uint8(uint(x[i/20]) / (2**(8*(19 - i%20)))));
+    if(block_number == 0) {
+      bytes memory openChannelData = new bytes(40);
+      assembly {
+	let pre := mload(add(openChannelData, 20))
+	mstore( add(openChannelData, 40), address2)
+	mstore(
+	  add(openChannelData, 20),
+	  or(pre, address1)
+	)	  
+      }
+      return openChannelData;
+    } else {
+      bytes memory topUpChannelData = new bytes(44);
+      assembly {
+	let pre := mload(add(topUpChannelData, 20))
+	mstore(add(topUpChannelData, 44), block_number)
+	mstore( add(topUpChannelData, 40), address2)
+	mstore(
+	  add(topUpChannelData, 20),
+	  or(pre, address1)
+	)
+      }
+      return topUpChannelData;
+    }
   }
-
 
   event DEBUG(address spender, address paywall, bytes data);
 
@@ -158,7 +177,8 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTM
   /// @notice this would mean owner can replace channelManager with a wallet contract, stealing anyones coins
   function deposit(
 		   address spender,
-		   uint192 _value
+		   uint192 _value,
+		   uint32 _open_block_number
 		   )
     isTTM
     cmIsInitialized
@@ -167,11 +187,11 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTM
     returns (bool success) {
     require(spender != 0x0);
     require(managed[spender]);
-    /* DEBUG(spender, paywall, toBytes([spender, paywall])); */
+    DEBUG(spender, paywall, join(spender, paywall, _open_block_number));
     balances[spender] = balances[spender].sub(_value);
     balances[address(channelManager)] = balances[address(channelManager)].add( _value);
     Transfer(spender, channelManager, _value);
-    channelManager.tokenFallback(spender, _value, toBytes([spender, paywall]));
+    channelManager.tokenFallback(spender, _value, join(spender, paywall, _open_block_number));
 
     return true;
   }

@@ -6,16 +6,49 @@ const BigNumber = require('bignumber.js')
 const { testWillThrow } = require('./utils/general')
 const { migrate } = require('./utils/general')
 const { testCreateViewer } = require('./utils/ttm')
-const { testCreateChannel, testTopUpChannel, testWatchOriginalContent, testWatchAd, signBalanceProof, channelFromEvent, toChannelInfoObject, balanceProofHash, createChannel, testCooperativeClose, testWithdrawl,  testDeposit
+const { testCreateChannel, testTopUpChannel, testWatchOriginalContent, testWatchAd, signBalanceProof, channelFromEvent, toChannelInfoObject, balanceProofHash, createChannel, testCooperativeClose, testWithdrawl,  testDeposit, testDepositTopUp
  } = require('./utils/uRaiden')
 
+
+describe('join', () => {
+  let uRaiden, ttc, ttm
+  const owner = web3.eth.accounts[0]
+  const spender = owner
+  const recipient = web3.eth.accounts[1]
+  const addr = web3.eth.accounts
+    
+  beforeEach(async () => {
+    // instances = await migrate(owner, recipient)
+    // uRaiden = instances.uRaiden
+    ttc = await TvTwoCoin.deployed() //instances.ttc
+    // ttm = instances.ttm
+  })
+
+  it('should create 40 bytes data when called with open_block == 0', async () => {
+    const result = await ttc.join(addr[1], addr[2], 0)
+    // length in hexstring 40*2 +2
+    assert.equal(result.length, 82, 'length wrong')
+    assert.equal(result.slice(2,42), addr[1].replace(/^0x/, ''))
+    assert.equal(result.slice(42,82), addr[2].replace(/^0x/, ''))
+  })
+
+  it('should create 44 bytes data when called with open_block != 0', async () => {
+    const open_block = new BigNumber(0x12345)
+    const result = await ttc.join(addr[1], addr[2], open_block)
+    // length in hexstring 40*2 +2
+    assert.equal(result.length, 90, 'length wrong')
+    assert.equal(result.slice(2,42), addr[1].replace(/^0x/, ''))
+    assert.equal(result.slice(42,82), addr[2].replace(/^0x/, ''))
+    assert(open_block.equals('0x'+result.slice(82,90)) )
+  })
+})
 describe('StateChannels', () => {
   let uRaiden, ttc, ttm
   const owner = web3.eth.accounts[0]
   const spender = owner
-  const recepient = web3.eth.accounts[1]
+  const recipient = web3.eth.accounts[1]
   beforeEach(async () => {
-    instances = await migrate(owner, recepient)
+    instances = await migrate(owner, recipient)
     uRaiden = instances.uRaiden
     ttc = instances.ttc
     ttm = instances.ttm
@@ -43,14 +76,14 @@ describe('StateChannels', () => {
 
     const signedProof = signBalanceProof({
       spender: owner,
-      recepient,
+      recipient,
       openingBlock,
       balance: amount,
       contractAddress: uRaiden.address
     })
     
     const signer = await uRaiden.extractBalanceProofSignature(
-      recepient,
+      recipient,
       openingBlock,
       amount,
       signedProof,
@@ -67,14 +100,14 @@ describe('StateChannels', () => {
 
     const channel = {
       spender: owner,
-      recepient,
+      recipient,
       openingBlock,
       balance: amount,
       contractAddress: uRaiden.address
     }
     
     const signedProof = await generateClosingSig(channel)
-    assert.equal(channel.recepient, await uRaiden.extractClosingSignature(
+    assert.equal(channel.recipient, await uRaiden.extractClosingSignature(
       channel.spender,
       channel.openingBlock,
       channel.balance,
@@ -141,7 +174,7 @@ describe('StateChannels', () => {
     await testWatchAd(uRaiden, ttc, channels)
     
     await testCooperativeClose(uRaiden, ttc, channels.viewerIn)
-
+    channels.viewerIn = await createChannel(uRaiden, ttc, owner, accounts.viewer, amount)
     // console.log('watched ad :', await ttc.balanceOf(accounts.viewer).then(web3.toDecimal))
 
     channels.viewerOut = await testDeposit(uRaiden, ttc, ttm, 
@@ -154,11 +187,23 @@ describe('StateChannels', () => {
 
     await Promise.all([
       testWatchOriginalContent(uRaiden, ttc, channels),
+      await testWatchAd(uRaiden, ttc, channels),
       testWatchOriginalContent(uRaiden, ttc, channels),
+      await testWatchAd(uRaiden, ttc, channels),
       testWatchOriginalContent(uRaiden, ttc, channels),
     ])
     // testWithdrawl(uRaiden, ttc, channels.advertiser)
 
+    
+    await testCooperativeClose(uRaiden, ttc, channels.viewerIn)
+
+    const topUpViewerOut = await ttc.balanceOf(accounts.viewer)
+    assert.equal(topUpViewerOut.toString(), '6')
+    await testDepositTopUp(uRaiden, ttc, ttm, owner,
+    		    channels.viewerOut,
+    		    topUpViewerOut)
+    
+    console.log('toped Upd Viewer Out : ', channels.viewerOut)
     await Promise.all(
       Object.keys(channels).filter((key) => !['advertiser', 'viewerIn'].includes(key)).map(
 	channel => testCooperativeClose(uRaiden, ttc, channels[channel])
@@ -169,7 +214,7 @@ describe('StateChannels', () => {
     const contentCreatorBalance = await ttc.balanceOf(accounts.contentCreator).then(web3.toDecimal)
     const advertiserBalance =  await ttc.balanceOf(accounts.advertiser).then(web3.toDecimal)
     
-    assert.equal(viewerBalance, 0, `viewer balance wrong : ${viewerBalance}`)
+    assert.equal(viewerBalance, 6, `viewer balance wrong : ${viewerBalance}`)
 
 
     assert.equal(contentCreatorBalance, amount*2+3, 'contentCreator balance wrong')

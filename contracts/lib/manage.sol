@@ -18,9 +18,9 @@ contract TvTwoCoinI is Token {
     external
     returns (bool success);
 
-    function deposit(address spender, uint192 _value)
-      external
-      returns (bool success);
+  function deposit(address spender, uint192 _value, uint32 _opening_block)
+    external
+    returns (bool success);
 
 }
 

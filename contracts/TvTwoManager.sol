@@ -125,12 +125,12 @@ contract TvTwoManager is UsingChannelManager {
     /* } */
   }
 
-  function deposit(address _viewer, uint192 _value)
+  function deposit(address _viewer, uint192 _value, uint32 _opening_block)
     ttcInitialized
     onlyOwner
     public
   {
-    ttc.deposit(_viewer, _value);
+    ttc.deposit(_viewer, _value, _opening_block);
   }
   
 }

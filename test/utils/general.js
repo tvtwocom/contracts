@@ -52,7 +52,7 @@ const getEtherBalance = address => {
   })
 }
 
-async function migrate(owner, recepient, challengePeriod = 500) {
+async function migrate(owner, recipient, challengePeriod = 500) {
   // const challengePeriod = !!_challengePeriod ? _challengePeriod : 500
   const ttc =  await TvTwoCoin.new({from: owner})
   const ttm = await TvTwoManager.new({from: owner})
