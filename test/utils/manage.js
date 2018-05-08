@@ -10,14 +10,20 @@ async function testSetChannelManager(contract, uRaiden, owner) {
 
 
 async function testSetTTManager(contract, ttm, owner) {
-  console.log(ttm.address)
   const result = await contract.setTTManager(ttm.address, { from: owner })
   const ttmAddress = await contract.ttm()
   assert.equal(ttmAddress, ttm.address)
 }
 
+async function testSetPaywall(contract, paywall, owner) {
+  const result = await contract.setPaywall(paywall, { from: owner })
+  const _paywall = await contract.paywall()
+  assert.equal(_paywall, paywall)
+}
+
 
 module.exports = {
   testSetChannelManager,
-  testSetTTManager
+  testSetTTManager,
+  testSetPaywall
 }

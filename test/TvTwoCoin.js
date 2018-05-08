@@ -6,7 +6,7 @@ const assert = require('assert')
 const BigNumber = require('bignumber.js')
 const { testWillThrow, timeTravel } = require('./utils/general')
 const { testBuyTokens, testSellTokens, testSetAllowance } = require('./utils/ttc')
-const { testSetChannelManager, testSetTTManager } = require('./utils/manage')
+const { testSetChannelManager, testSetTTManager, testSetPaywall } = require('./utils/manage')
 const expectedContractData = {
   name: 'TV-TWO',
   symbol: 'TTV',
@@ -275,4 +275,20 @@ describe('helpers', () => {
     assert(await ttc.channelManager(), '0x0000000000000000000000000000000000000000', 'channelManager is not unset')
   })
 
+  it('paywall should be unset on deploy', async () => {
+    const paywall = await ttc.paywall()
+    assert.equal(paywall, '0x0000000000000000000000000000000000000000')
+  })
+
+  it('should set the Paywall', async () => {
+    await testSetPaywall(ttc, spender, owner)
+  })
+
+
+  it('shold not allow setting Paywall by not owner', async () => {
+    await testWillThrow(testSetPaywall(ttc, spender, other))
+    assert(await ttc.paywall(), '0x0000000000000000000000000000000000000000', 'TvTwoManager is not unset')
+
+  })
+  
 })
