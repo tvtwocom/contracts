@@ -1,10 +1,12 @@
 const TvTwoCoin = artifacts.require('TvTwoCoin')
 const RaidenMicroTransferChannels = artifacts.require('RaidenMicroTransferChannels')
+const TvTwoManager = artifacts.require('TvTwoManager')
+
 const assert = require('assert')
 const BigNumber = require('bignumber.js')
 const { testWillThrow, timeTravel } = require('./utils/general')
 const { testBuyTokens, testSellTokens, testSetAllowance } = require('./utils/ttc')
-const { testSetChannelManager } = require('./utils/manage')
+const { testSetChannelManager, testSetTTManager } = require('./utils/manage')
 const expectedContractData = {
   name: 'TV-TWO',
   symbol: 'TTV',
@@ -232,7 +234,7 @@ describe('helpers', () => {
   })
 
   it('should not set channelManager with wrong token', async () => {
-    const ttc2 = await TvTwoCoin.new()
+    const ttc2 = await TvTwoCoin.new({from: owner})
     const uRaiden = await RaidenMicroTransferChannels.new(ttc2.address, 500, [], {from: owner})
     await testWillThrow(testSetChannelManager(ttc, uRaiden, owner))
     assert(await ttc.channelManager(), '0x0000000000000000000000000000000000000000', 'channelManager is not unset')
@@ -244,8 +246,33 @@ describe('helpers', () => {
     assert(await ttc.channelManager(), '0x0000000000000000000000000000000000000000', 'channelManager is not unset')
 
   })
+
   it('should not set the channelManager to not contract', async () => {
     await testWillThrow( ttc.setChannelManager(other, {from: owner}) )
     assert(await ttc.channelManager(), '0x0000000000000000000000000000000000000000', 'channelManager is not unset')
   })
+
+  it('TTManger should be unset on deploy', async () => {
+    const TTManger = await ttc.ttm()
+    assert.equal(TTManger, '0x0000000000000000000000000000000000000000')
+  })
+
+  it('should set the TTManger', async () => {
+    const ttm = await TvTwoManager.new({from: owner})
+    await testSetTTManager(ttc, ttm, owner)
+  })
+
+
+  it('shold not allow setting TTManager by not owner', async () => {
+    const ttm = await TvTwoManager.new({from: owner})
+    await testWillThrow(testSetTTManager(ttc, ttm, other))
+    assert(await ttc.ttm(), '0x0000000000000000000000000000000000000000', 'TvTwoManager is not unset')
+
+  })
+
+  it('should not set the TTManager to not contract', async () => {
+    await testWillThrow( ttc.setTTManager(other, {from: owner}) )
+    assert(await ttc.channelManager(), '0x0000000000000000000000000000000000000000', 'channelManager is not unset')
+  })
+
 })
