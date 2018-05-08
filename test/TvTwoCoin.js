@@ -1,9 +1,10 @@
 const TvTwoCoin = artifacts.require('TvTwoCoin')
+const RaidenMicroTransferChannels = artifacts.require('RaidenMicroTransferChannels')
 const assert = require('assert')
 const BigNumber = require('bignumber.js')
 const { testWillThrow, timeTravel } = require('./utils/general')
 const { testBuyTokens, testSellTokens, testSetAllowance } = require('./utils/ttc')
-
+const { testSetChannelManager } = require('./utils/manage')
 const expectedContractData = {
   name: 'TV-TWO',
   symbol: 'TTV',
@@ -186,5 +187,65 @@ describe('when buying and selling', () => {
       }
     })
   
+  })
+})
+
+
+describe('helpers', () => {
+  let uRaiden, ttc, ttm
+  const owner = web3.eth.accounts[0]
+  const spender = web3.eth.accounts[1]
+  const recipient = web3.eth.accounts[2]
+  const other = web3.eth.accounts[9]
+  const addr = web3.eth.accounts
+    
+  beforeEach(async () => {
+    ttc = await TvTwoCoin.new({from: owner}) //instances.ttc
+  })
+
+  it('join should create 40 bytes data when called with open_block == 0', async () => {
+    const result = await ttc.join(addr[1], addr[2], 0)
+    // length in hexstring 40*2 +2
+    assert.equal(result.length, 82, 'length wrong')
+    assert.equal(result.slice(2,42), addr[1].replace(/^0x/, ''))
+    assert.equal(result.slice(42,82), addr[2].replace(/^0x/, ''))
+  })
+
+  it('join should create 44 bytes data when called with open_block != 0', async () => {
+    const open_block = new BigNumber(0x12345)
+    const result = await ttc.join(addr[1], addr[2], open_block)
+    // length in hexstring 40*2 +2
+    assert.equal(result.length, 90, 'length wrong')
+    assert.equal(result.slice(2,42), addr[1].replace(/^0x/, ''))
+    assert.equal(result.slice(42,82), addr[2].replace(/^0x/, ''))
+    assert(open_block.equals('0x'+result.slice(82,90)) )
+  })
+
+  it('channelManager should be unset on deploy', async () => {
+    const channelManager = await ttc.channelManager()
+    assert.equal(channelManager, '0x0000000000000000000000000000000000000000')
+  })
+
+  it('should set the channelManager', async () => {
+    const uRaiden = await RaidenMicroTransferChannels.new(ttc.address, 500, [], {from: owner})
+    await testSetChannelManager(ttc, uRaiden, owner)
+  })
+
+  it('should not set channelManager with wrong token', async () => {
+    const ttc2 = await TvTwoCoin.new()
+    const uRaiden = await RaidenMicroTransferChannels.new(ttc2.address, 500, [], {from: owner})
+    await testWillThrow(testSetChannelManager(ttc, uRaiden, owner))
+    assert(await ttc.channelManager(), '0x0000000000000000000000000000000000000000', 'channelManager is not unset')
+  })
+
+  it('shold not allow setting ChannelManager by not owner', async () => {
+    const uRaiden = await RaidenMicroTransferChannels.new(ttc.address, 500, [], {from: owner})
+    await testWillThrow(testSetChannelManager(ttc, uRaiden, other))
+    assert(await ttc.channelManager(), '0x0000000000000000000000000000000000000000', 'channelManager is not unset')
+
+  })
+  it('should not set the channelManager to not contract', async () => {
+    await testWillThrow( ttc.setChannelManager(other, {from: owner}) )
+    assert(await ttc.channelManager(), '0x0000000000000000000000000000000000000000', 'channelManager is not unset')
   })
 })

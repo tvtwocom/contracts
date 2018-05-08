@@ -10,38 +10,6 @@ const { testCreateChannel, testTopUpChannel, testWatchOriginalContent, testWatch
  } = require('./utils/uRaiden')
 
 
-describe('join', () => {
-  let uRaiden, ttc, ttm
-  const owner = web3.eth.accounts[0]
-  const spender = owner
-  const recipient = web3.eth.accounts[1]
-  const addr = web3.eth.accounts
-    
-  beforeEach(async () => {
-    // instances = await migrate(owner, recipient)
-    // uRaiden = instances.uRaiden
-    ttc = await TvTwoCoin.deployed() //instances.ttc
-    // ttm = instances.ttm
-  })
-
-  it('should create 40 bytes data when called with open_block == 0', async () => {
-    const result = await ttc.join(addr[1], addr[2], 0)
-    // length in hexstring 40*2 +2
-    assert.equal(result.length, 82, 'length wrong')
-    assert.equal(result.slice(2,42), addr[1].replace(/^0x/, ''))
-    assert.equal(result.slice(42,82), addr[2].replace(/^0x/, ''))
-  })
-
-  it('should create 44 bytes data when called with open_block != 0', async () => {
-    const open_block = new BigNumber(0x12345)
-    const result = await ttc.join(addr[1], addr[2], open_block)
-    // length in hexstring 40*2 +2
-    assert.equal(result.length, 90, 'length wrong')
-    assert.equal(result.slice(2,42), addr[1].replace(/^0x/, ''))
-    assert.equal(result.slice(42,82), addr[2].replace(/^0x/, ''))
-    assert(open_block.equals('0x'+result.slice(82,90)) )
-  })
-})
 describe('StateChannels', () => {
   let uRaiden, ttc, ttm
   const owner = web3.eth.accounts[0]

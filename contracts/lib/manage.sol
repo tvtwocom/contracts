@@ -42,7 +42,7 @@ contract ChannelManagerI {
 				 uint192 _deposit
 				 )
     external;
-
+  address public token;
 }
 
 
@@ -59,13 +59,13 @@ contract UsingChannelManager is Ownable, Utils {
     _;
   }
 
-  
   function setChannelManager(address _new)
     onlyOwner
     public
   {
     require(isContract(_new));
     if(ChannelManagerI(_new) != channelManager && _new != 0x0) {
+      require(ChannelManagerI(_new).token() == address(this));
       channelManager = ChannelManagerI(_new);
     }
   }
