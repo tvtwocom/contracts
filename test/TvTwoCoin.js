@@ -233,13 +233,6 @@ describe('helpers', () => {
     await testSetChannelManager(ttc, uRaiden, owner)
   })
 
-  it('should not set channelManager with wrong token', async () => {
-    const ttc2 = await TvTwoCoin.new({from: owner})
-    const uRaiden = await RaidenMicroTransferChannels.new(ttc2.address, 500, [], {from: owner})
-    await testWillThrow(testSetChannelManager(ttc, uRaiden, owner))
-    assert(await ttc.channelManager(), '0x0000000000000000000000000000000000000000', 'channelManager is not unset')
-  })
-
   it('shold not allow setting ChannelManager by not owner', async () => {
     const uRaiden = await RaidenMicroTransferChannels.new(ttc.address, 500, [], {from: owner})
     await testWillThrow(testSetChannelManager(ttc, uRaiden, other))

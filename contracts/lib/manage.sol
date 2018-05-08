@@ -3,7 +3,11 @@ pragma solidity ^0.4.18;
 import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 import '../TokenInterface.sol';
 
+/// @title helpers used in different contracts
 contract Utils {
+
+  /// @notice tests if a given address has bytecode
+  /// @return true if bytecode saved at address, false otherwise
   function isContract(address addr)
     internal view returns (bool)
   {
@@ -12,7 +16,7 @@ contract Utils {
     return size > 0;
   }
 }
-// used to mint from TvTwoCoin
+
 contract TvTwoCoinI is Token {
   function createViewer(address _viewer)
     external
@@ -45,8 +49,10 @@ contract ChannelManagerI {
   address public token;
 }
 
-
+/// @title setter/getter for RaidenMicroTransferChannelsContract
 contract UsingChannelManager is Ownable, Utils {
+
+  /// @notice channelManager getter
   ChannelManagerI public channelManager = ChannelManagerI(0x0);
 
   modifier cmIsInitialized() {
@@ -54,25 +60,30 @@ contract UsingChannelManager is Ownable, Utils {
     _;
   }
 
-  modifier isCM() {
+  modifier onlyCM() {
     require(msg.sender == address(channelManager));
     _;
   }
 
+  /// @notice sets the channelManager
+  /// @dev must have contract code
+  /// @param _new future channelManager address
   function setChannelManager(address _new)
     onlyOwner
     public
   {
     require(isContract(_new));
     if(ChannelManagerI(_new) != channelManager && _new != 0x0) {
-      require(ChannelManagerI(_new).token() == address(this));
       channelManager = ChannelManagerI(_new);
     }
   }
 }
 
 
+/// @title setter/getter for TvTwoManager
 contract UsingTTManager is Ownable, Utils {
+
+  /// @notice the ttm getter
   address public ttm = 0x0;
 
   modifier ttmIsInitialized() {
@@ -80,12 +91,15 @@ contract UsingTTManager is Ownable, Utils {
     _;
   }
 
-  modifier isTTM() {
+  modifier onlyTTM() {
     require(ttm != 0x0);
     require(msg.sender == ttm);
     _;
   }
 
+  /// @notice set the TvTwoManager address
+  /// @dev address must have contract code
+  /// @param _new the future TvTwoManager address
   function setTTManager(address _new)
     onlyOwner
     public
@@ -97,7 +111,11 @@ contract UsingTTManager is Ownable, Utils {
   }
 }
 
+/// @title getter/setter for the paywal
+/// @notice the address that will sign in name of TvTwo
 contract UsingPaywall is Ownable {
+
+  /// @notice the getter
   address public paywall = 0x0;
 
   modifier paywallIsInitialized() {
@@ -105,6 +123,9 @@ contract UsingPaywall is Ownable {
     _;
   }
   
+  /// @notice set the paywall address
+  /// @dev must not be a contract
+  /// @param _new future address
   function setPaywall(address _new)
     onlyOwner
     public

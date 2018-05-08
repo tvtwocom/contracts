@@ -180,7 +180,7 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTM
 		   uint192 _value,
 		   uint32 _open_block_number
 		   )
-    isTTM
+    onlyTTM
     cmIsInitialized
     paywallIsInitialized
     external
@@ -202,7 +202,7 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTM
   /// now channelManager can create channels once this address owns tokens
   /// in case of fraud by owner, anyone who is going to recive tokens to a new address can check if any previous channel manager already has an allowance without gasCost, and could change this by calling approve(channelManager, 0)
   function createViewer(address _viewer)
-    isTTM
+    onlyTTM
     external
     returns (bool success)
   {
