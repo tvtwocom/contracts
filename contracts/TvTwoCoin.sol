@@ -17,23 +17,6 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTM
   mapping (address =>  bool) managed;
 
   event IsManaged(address user, bool state);
-  
-  function isManaged(address _user)
-    public
-    view
-    returns (bool)
-  {
-    return managed[_user];
-  }
-
-  function setManged(bool state)
-    public
-  {
-    require(managed[msg.sender] != state);
-    managed[msg.sender] = state;
-    IsManaged(msg.sender, state);
-  }
-
 
   function TvTwoCoin()
     public
@@ -52,6 +35,9 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTM
     Transfer(address(0), this, _contractBalance);
   }
 
+  /// @notice converts amount of tokens to wei
+  /// @param _tokens amount of tokens
+  /// @return amount of wei
   function tokensToWei(uint _tokens)
     public
     view
@@ -60,6 +46,9 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTM
     return _tokens.mul(weiTokenRate).div(100);
   }
 
+  /// @notice converts wei to amount of tokens
+  /// @param _wei amount of _wei
+  /// @return amount of tokens
   function weiToTokens(uint _wei)
     public
     view
@@ -123,7 +112,7 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTM
   /// @param _to The address of the recipient.
   /// @param _value The amount of token to be transferred.
   /// @param _data Data to be sent to `tokenFallback.
-
+  /// [TODO] this should be called transfer too, but truffle gives me problems there
   function _transfer(address _to, uint256 _value, bytes _data)
     public
     returns (bool success)
@@ -139,6 +128,12 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTM
     _;
   }
 
+
+  /// @notice creates data structures for tokenFallback of the channelManager
+  /// @param address1 spender address
+  /// @param address2 recepient address
+  /// @param block_number open_block to topUp, and 0 to create new channel
+  /// [TODO] decrease memory usage
   function join(address address1, address address2, uint32 block_number)   pure
     public
     returns (bytes)
@@ -169,12 +164,11 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTM
     }
   }
 
-  event DEBUG(address spender, address paywall, bytes data);
-
   /// @notice deposit tokens with the channelManager for the paywall
-  /// can only be called by trusted Contracts
+  /// @notice can only be called by TvTwoManager
   /// @param _value amount of tokens
-  /// @notice this would mean owner can replace channelManager with a wallet contract, stealing anyones coins
+  /// @param _open_block_number the block number of an already existing channel, 0 for new channel
+  /// @dev this would mean owner can replace channelManager with a wallet contract, stealing all managed coins
   function deposit(
 		   address spender,
 		   uint192 _value,
@@ -187,7 +181,6 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTM
     returns (bool success) {
     require(spender != 0x0);
     require(managed[spender]);
-    DEBUG(spender, paywall, join(spender, paywall, _open_block_number));
     balances[spender] = balances[spender].sub(_value);
     balances[address(channelManager)] = balances[address(channelManager)].add( _value);
     Transfer(spender, channelManager, _value);
@@ -197,10 +190,12 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTM
   }
 
 
-  /// @notice ttm calls this when a new user is created
-  /// it won't affect addresses already owning tokens
-  /// now channelManager can create channels once this address owns tokens
-  /// in case of fraud by owner, anyone who is going to recive tokens to a new address can check if any previous channel manager already has an allowance without gasCost, and could change this by calling approve(channelManager, 0)
+  /// @notice ttm calls this when a new user is created,
+  /// @notice sets managed to true
+  /// @notice it won't affect addresses already owning tokens
+  /// @param _viewer address of user
+  /// @dev allows use of deposit by TvTwo 
+  /// @dev in case of fraud by owner, anyone who is going to recive tokens to a new address can check this.managed() without gasCost, and could change this by calling this.setManaged()
   function createViewer(address _viewer)
     onlyTTM
     external
@@ -211,6 +206,26 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTM
     managed[_viewer] = true;
     IsManaged(_viewer, true);
     return true;      
+  }
+
+  /// @notice returns managed flag for given address
+  function isManaged(address _user)
+    public
+    view
+    returns (bool)
+  {
+    return managed[_user];
+  }
+
+  /// @notice sets managed flag of msg.sender
+  /// @notice can be used to turn a managed account into a token owner
+  /// @param state false to disable gasless TvTwo viewing
+  function setManged(bool state)
+    public
+  {
+    require(managed[msg.sender] != state);
+    managed[msg.sender] = state;
+    IsManaged(msg.sender, state);
   }
 
 }
