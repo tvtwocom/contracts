@@ -1,7 +1,7 @@
 const TvTwoCoin = artifacts.require('TvTwoCoin')
 const RaidenMicroTransferChannels = artifacts.require('RaidenMicroTransferChannels')
 const TvTwoManager = artifacts.require('TvTwoManager')
-
+const TokenFallbackMock = artifacts.require('TokenFallbackMock')
 const assert = require('assert')
 const BigNumber = require('bignumber.js')
 const { testWillThrow, timeTravel } = require('./utils/general')
@@ -122,6 +122,7 @@ describe('when deploying a new TvTwoCoin', () => {
 
 describe('when buying and selling', () => {
   contract('TvTwoCoin', accounts => {
+    const owner = accounts[0]
     const trader = accounts[1]
     const approver = accounts[2]
     const spender = accounts[3]
@@ -188,8 +189,43 @@ describe('when buying and selling', () => {
 	}
       }
     })
-  
+
+    it('should throw when transfereing to some contract without data', async () => {
+      const amount = 50
+      await ttc.transfer(spender, amount*2, {from: owner})
+      const contract = await TvTwoManager.new()
+      await testWillThrow(ttc.transfer, [contract.address, amount, {from: spender}])
+    })
+
+    function hasEvent(receipt, eventName) {
+      const events = receipt.logs.filter( e => e.event == eventName)
+      assert(events.length > 0)
+      if(events.length === 1)
+	return events.pop()
+      else
+	return events
+    }
+    
+    it('should call tokenFallback with data when transfere is called',
+       async () => {
+	 const amount = new BigNumber(123)
+	 await ttc.transfer(spender, amount*2, {from: owner})
+	 const contract = await TokenFallbackMock.new()
+	 const data = "TestString!\n"
+	 const result = await ttc._transfer(contract.address, amount, data, {from: spender})
+
+	 const event = hasEvent(result, 'Transfer')
+	 assert.deepEqual(event.args, {from: spender, to: contract.address, value: amount})
+
+	 
+	 assert((await ttc.balanceOf(contract.address)).eq(amount), 'wrong amount in contract balance')
+	 assert(amount.eq(await ttc.balanceOf(spender)), 'wrong amount in spender balance')
+	 assert.equal(await contract.data(), web3.toHex(data), 'wrong data in contract')
+	 assert.equal(await contract.sender_address(), spender, 'wrong spender in contract')
+	 assert(amount.eq(await contract.deposit()), 'wrong amount in contract')
+       })
   })
+  
 })
 
 
