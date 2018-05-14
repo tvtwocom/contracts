@@ -86,7 +86,7 @@ async function testTopUpChannel(uRaiden, ttc, channel, amount) {
     const data = spender
 	  .concat(recipient.replace('0x', ''))
 	  .concat(web3.padLeft(openingBlock.toString(16), 8)) // 4 bytes
-    const topUpResponse = await ttc._transfer(uRaiden.address, amount, data)
+  const topUpResponse = await ttc._transfer(uRaiden.address, amount, data, {from: spender})
     const channelToppedUpEvent = topUpResponse.logs.filter( item => item.event == "ChannelToppedUp")[0]
   assert.equal(channelToppedUpEvent.args._added_deposit, amount.toString())
     

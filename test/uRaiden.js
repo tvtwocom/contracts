@@ -13,8 +13,8 @@ const { testCreateChannel, testTopUpChannel, testWatchOriginalContent, testWatch
 describe('StateChannels', () => {
   let uRaiden, ttc, ttm
   const owner = web3.eth.accounts[0]
-  const spender = owner
-  const recipient = web3.eth.accounts[1]
+  const spender = web3.eth.accounts[1]
+  const recipient = web3.eth.accounts[2]
   beforeEach(async () => {
     instances = await migrate(owner, recipient)
     uRaiden = instances.uRaiden
@@ -22,22 +22,32 @@ describe('StateChannels', () => {
     ttm = instances.ttm
   })
   
-  it('should throw when transfereing to channelManager without data', async () => {
+  it('transfer should create a channel', async () => {
     const amount = 50
-    await testWillThrow(ttc.transfer, [uRaiden.address, amount, {from: spender}])
-  })
-  
-  it('should create a channel', async () => {
-    const amount = 50
+    await ttc.transfer(spender, amount, {from: owner})
     await testCreateChannel(uRaiden, ttc, spender, amount)
   })
 
-  it('should increase deposit when channel already exists', async () => {
-    const channelInfo = await testCreateChannel(uRaiden, ttc, spender, 30)
-    const amount = 23
-    await testTopUpChannel(uRaiden, ttc, channelInfo, amount)
+  it('transfer should increase deposit when channel already exists', async () => {
+    const amount = 100
+    await ttc.transfer(spender, amount, {from: owner})
+    const channelInfo = await testCreateChannel(uRaiden, ttc, spender, amount*0.3)
+    await testTopUpChannel(uRaiden, ttc, channelInfo, amount*0.7)
   })
 
+  it('transfer should fail when channel does not exist', async () => {
+    const amount = 100
+    await ttc.transfer(spender, amount, {from: owner})
+    channelInfo = {
+      openingBlock: 24,
+      spender: spender,
+      recipient: recipient,
+      contractAddress: uRaiden.address,
+      balance: 0,
+    }
+    await testWillThrow(testTopUpChannel(uRaiden, ttc, channelInfo, amount))
+  })
+  
   it('can generate balanceProofs', async () => {
     const openingBlock = 123
     const amount = 13
@@ -86,17 +96,54 @@ describe('StateChannels', () => {
 
   it('createViewer sets managed for Accounts without balance', async () => {
     const viewer = web3.eth.accounts[3]
-    const amount = 10e18
-    await testCreateViewer(uRaiden, ttc, ttm, owner, viewer, amount)
+    await testCreateViewer(uRaiden, ttc, ttm, owner, viewer)
   }) 
 
   it('createViewer reverts for accounts with balance', async () => {
     const viewer = web3.eth.accounts[3]
-    const amount = 10e18
     ttc.transfer(viewer, 1, {from: owner})
-    await testWillThrow(testCreateViewer(uRaiden, ttc, ttm, owner, viewer, amount))
+    await testWillThrow(testCreateViewer(uRaiden, ttc, ttm, owner, viewer))
 
   })
+
+  it('createViewer can only be called by it\'s ttm', async () => {
+    const viewer = web3.eth.accounts[3]
+    const otherTtm = await TvTwoManager.new()
+    await testWillThrow(testCreateViewer(uRaiden, ttc, otherTtm, owner, viewer))
+  })
+  
+  it('deposit can create channels', async () => {
+    const viewer = web3.eth.accounts[3]
+    const amount = new BigNumber(12e18) 
+    await testCreateViewer(uRaiden, ttc, ttm, owner, viewer)
+    await ttc.transfer(viewer, amount, {from: owner})
+    await testDeposit(uRaiden, ttc, ttm, viewer, owner, amount)
+  })
+
+  it('deposit can topUp channels', async () => {
+    const viewer = web3.eth.accounts[3]
+    const amount = new BigNumber(1.72362e18)
+    await testCreateViewer(uRaiden, ttc, ttm, owner, viewer)
+    await ttc.transfer(viewer, amount*2, {from: owner})
+    const channel = await testDeposit(uRaiden, ttc, ttm, viewer, owner, amount)
+    await testTopUpChannel(uRaiden, ttc, channel, amount)
+  })
+
+  it('deposit throws when updating noexistent channel')
+
+  it('deposit fails if cm is not initialized')
+
+  it('deposit fails if paywall is not initialized')
+
+  it('deposit can only be called by it\'s ttm', async () => {
+    const viewer = web3.eth.accounts[3]
+    const amount = new BigNumber(12e18)
+    const otherTtm = await TvTwoManager.new()
+    await testCreateViewer(uRaiden, ttc, ttm, owner, viewer)
+    await ttc.transfer(viewer, amount, {from: owner})
+    await testWillThrow(
+      testDeposit(uRaiden, ttc, otherTtm, viewer, owner, amount) )
+  })  
   
   it('let us watch videos', async () => {
     const accounts = { viewer: web3.eth.accounts[3],

@@ -3,7 +3,7 @@ const BigNumber = require('bignumber.js')
 
 const { testBuyTokens, testSetAllowance } = require('./ttc')
 
-const testCreateViewer = async (uRaiden, ttc, ttm,  owner, viewer, amount) => {
+const testCreateViewer = async (uRaiden, ttc, ttm,  owner, viewer) => {
   const result = await ttm.createViewer(viewer, {from: owner})
   assert.equal(await ttc.isManaged(viewer), true)
   return result
