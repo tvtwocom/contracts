@@ -144,7 +144,7 @@ async function testDepositTopUp(uRaiden, ttc, ttm, owner, channel, amount) {
 
   const preBalance = {
     spender: await ttc.balanceOf(channel.spender),
-    recipient: await ttc.balanceOf(channel.recipient),
+    recipient: await ttc.balanceOf(await ttc.paywall()),
     channelManager: await ttc.balanceOf(uRaiden.address)
   }
   const result = await ttm.deposit(
@@ -156,7 +156,7 @@ async function testDepositTopUp(uRaiden, ttc, ttm, owner, channel, amount) {
 
   const postBalance = {
     spender: await ttc.balanceOf(channel.spender),
-    recipient: await ttc.balanceOf(channel.recipient),
+    recipient: await ttc.balanceOf(await ttc.paywall()),
     channelManager: await ttc.balanceOf(uRaiden.address)
   }
 

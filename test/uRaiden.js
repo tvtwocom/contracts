@@ -21,33 +21,34 @@ describe('StateChannels', () => {
     ttc = instances.ttc
     ttm = instances.ttm
   })
-  
-  it('transfer should create a channel', async () => {
-    const amount = 50
-    await ttc.transfer(spender, amount, {from: owner})
-    await testCreateChannel(uRaiden, ttc, spender, amount)
-  })
 
-  it('transfer should increase deposit when channel already exists', async () => {
-    const amount = 100
-    await ttc.transfer(spender, amount, {from: owner})
-    const channelInfo = await testCreateChannel(uRaiden, ttc, spender, amount*0.3)
-    await testTopUpChannel(uRaiden, ttc, channelInfo, amount*0.7)
-  })
+  describe('transfer' , () => {
+    it('should create a channel', async () => {
+      const amount = 50
+      await ttc.transfer(spender, amount, {from: owner})
+      await testCreateChannel(uRaiden, ttc, spender, amount)
+    })
 
-  it('transfer should fail when channel does not exist', async () => {
-    const amount = 100
-    await ttc.transfer(spender, amount, {from: owner})
-    channelInfo = {
-      openingBlock: 24,
-      spender: spender,
-      recipient: recipient,
-      contractAddress: uRaiden.address,
-      balance: 0,
-    }
-    await testWillThrow(testTopUpChannel(uRaiden, ttc, channelInfo, amount))
+    it('should increase deposit when channel already exists', async () => {
+      const amount = 100
+      await ttc.transfer(spender, amount, {from: owner})
+      const channelInfo = await testCreateChannel(uRaiden, ttc, spender, amount*0.3)
+      await testTopUpChannel(uRaiden, ttc, channelInfo, amount*0.7)
+    })
+
+    it('should fail when channel does not exist', async () => {
+      const amount = 100
+      await ttc.transfer(spender, amount, {from: owner})
+      channelInfo = {
+	openingBlock: 24,
+	spender: spender,
+	recipient: recipient,
+	contractAddress: uRaiden.address,
+	balance: 0,
+      }
+      await testWillThrow(testTopUpChannel(uRaiden, ttc, channelInfo, amount))
+    })
   })
-  
   it('can generate balanceProofs', async () => {
     const openingBlock = 123
     const amount = 13
@@ -94,56 +95,121 @@ describe('StateChannels', () => {
 
   })
 
-  it('createViewer sets managed for Accounts without balance', async () => {
+  describe('createViewer', () => {
     const viewer = web3.eth.accounts[3]
-    await testCreateViewer(uRaiden, ttc, ttm, owner, viewer)
-  }) 
 
-  it('createViewer reverts for accounts with balance', async () => {
-    const viewer = web3.eth.accounts[3]
-    ttc.transfer(viewer, 1, {from: owner})
-    await testWillThrow(testCreateViewer(uRaiden, ttc, ttm, owner, viewer))
+    it('sets managed for Accounts without balance', async () => {
+      await testCreateViewer(uRaiden, ttc, ttm, owner, viewer)
+    }) 
+
+    xit('fails if cm is not initialized', async () => {
+      const _ttc = await TvTwoCoin.new({from:owner})
+      await _ttc.setTTManager(ttm.address)
+      ttm.setTvTwoCoin(_ttc.address, {from: owner})
+      await testWillThrow(
+	testCreateViewer(uRaiden, _ttc, ttm, owner, viewer)
+      )
+    })
+    
+    it('reverts for accounts with balance', async () => {
+      ttc.transfer(viewer, 1, {from: owner})
+      await testWillThrow(testCreateViewer(uRaiden, ttc, ttm, owner, viewer))
+
+    })
+
+    it('can only be called by it\'s ttm', async () => {
+      const otherTtm = await TvTwoManager.new()
+      await testWillThrow(testCreateViewer(uRaiden, ttc, otherTtm, owner, viewer))
+    })
 
   })
 
-  it('createViewer can only be called by it\'s ttm', async () => {
-    const viewer = web3.eth.accounts[3]
-    const otherTtm = await TvTwoManager.new()
-    await testWillThrow(testCreateViewer(uRaiden, ttc, otherTtm, owner, viewer))
+  describe('deposit', async () => {
+    it('deposit can create channels', async () => {
+      const viewer = web3.eth.accounts[3]
+      const amount = new BigNumber(12e18) 
+      await testCreateViewer(uRaiden, ttc, ttm, owner, viewer)
+      await ttc.transfer(viewer, amount, {from: owner})
+      await testDeposit(uRaiden, ttc, ttm, viewer, owner, amount)
+    })
+
+    it('deposit can topUp channels', async () => {
+      const viewer = web3.eth.accounts[3]
+      const amount = new BigNumber(1.72362e18)
+      await testCreateViewer(uRaiden, ttc, ttm, owner, viewer)
+      await ttc.transfer(viewer, amount*2, {from: owner})
+      const channel = await testDeposit(uRaiden, ttc, ttm, viewer, owner, amount)
+      await testDepositTopUp(uRaiden, ttc, ttm, owner, channel, amount)
+    })
+
+    it('deposit throws when updating noexistent channel', async () => {
+      const viewer = web3.eth.accounts[3]
+      const amount = new BigNumber(2.5632e19)
+      await testCreateViewer(uRaiden, ttc, ttm, owner, viewer)
+      await ttc.transfer(viewer, amount*2, {from: owner})
+      const channel = {
+	spender: viewer,
+	recipient: await ttc.paywall(),
+	openingBlock: 12
+      }
+      await testWillThrow(
+	testDepositTopUp(uRaiden, ttc, ttm, owner, channel, amount)
+      )
+    })
+
+    it('deposit fails if viewer is not managed', async () => {
+      const viewer = web3.eth.accounts[3]
+      const amount = new BigNumber(12e18) 
+      await ttc.transfer(viewer, amount, {from: owner})
+      await testWillThrow(
+	testDeposit(uRaiden, ttc, ttm, viewer, owner, amount)
+      )
+    })
+
+    it('deposit fails if cm is not initialized', async () => {
+      const viewer = web3.eth.accounts[3]
+      const amount = new BigNumber(12e18) 
+      const _ttc = await TvTwoCoin.new({from:owner})
+      await _ttc.setTTManager(ttm.address)
+      await _ttc.setPaywall(owner, {from: owner})
+      await ttm.setTvTwoCoin(_ttc.address, {from: owner})
+      await ttm.createViewer(viewer, {from: owner})
+      await _ttc.transfer(viewer, amount, {from: owner})
+      await testWillThrow(
+	ttm.deposit(viewer, amount, 0, {from: owner})
+      )
+    })
+    
+    it('deposit fails if paywall is not initialized', async () => {
+       const viewer = web3.eth.accounts[3]
+      const amount = new BigNumber(12e18) 
+      const _ttc = await TvTwoCoin.new({from:owner})
+      const _uRaiden = await URaiden.new(
+	_ttc.address, 500, [],
+	{from: owner}
+      )
+      await _ttc.setChannelManager(_uRaiden.address, {from: owner})
+      await _ttc.setTTManager(ttm.address)
+      await ttm.setTvTwoCoin(_ttc.address, {from: owner})
+      await ttm.createViewer(viewer, {from: owner})
+      await _ttc.transfer(viewer, amount, {from: owner})
+
+      await testWillThrow(
+	ttm.deposit(viewer, amount, 0, {from: owner})
+      )
+    })
+      
+    it('deposit can only be called by it\'s ttm', async () => {
+      const viewer = web3.eth.accounts[3]
+      const amount = new BigNumber(12e18)
+      const otherTtm = await TvTwoManager.new()
+      await testCreateViewer(uRaiden, ttc, ttm, owner, viewer)
+      await ttc.transfer(viewer, amount, {from: owner})
+      await testWillThrow(
+	testDeposit(uRaiden, ttc, otherTtm, viewer, owner, amount) )
+    })  
+
   })
-  
-  it('deposit can create channels', async () => {
-    const viewer = web3.eth.accounts[3]
-    const amount = new BigNumber(12e18) 
-    await testCreateViewer(uRaiden, ttc, ttm, owner, viewer)
-    await ttc.transfer(viewer, amount, {from: owner})
-    await testDeposit(uRaiden, ttc, ttm, viewer, owner, amount)
-  })
-
-  it('deposit can topUp channels', async () => {
-    const viewer = web3.eth.accounts[3]
-    const amount = new BigNumber(1.72362e18)
-    await testCreateViewer(uRaiden, ttc, ttm, owner, viewer)
-    await ttc.transfer(viewer, amount*2, {from: owner})
-    const channel = await testDeposit(uRaiden, ttc, ttm, viewer, owner, amount)
-    await testTopUpChannel(uRaiden, ttc, channel, amount)
-  })
-
-  it('deposit throws when updating noexistent channel')
-
-  it('deposit fails if cm is not initialized')
-
-  it('deposit fails if paywall is not initialized')
-
-  it('deposit can only be called by it\'s ttm', async () => {
-    const viewer = web3.eth.accounts[3]
-    const amount = new BigNumber(12e18)
-    const otherTtm = await TvTwoManager.new()
-    await testCreateViewer(uRaiden, ttc, ttm, owner, viewer)
-    await ttc.transfer(viewer, amount, {from: owner})
-    await testWillThrow(
-      testDeposit(uRaiden, ttc, otherTtm, viewer, owner, amount) )
-  })  
   
   it('let us watch videos', async () => {
     const accounts = { viewer: web3.eth.accounts[3],

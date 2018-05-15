@@ -5,7 +5,7 @@ const { testBuyTokens, testSetAllowance } = require('./ttc')
 
 const testCreateViewer = async (uRaiden, ttc, ttm,  owner, viewer) => {
   const result = await ttm.createViewer(viewer, {from: owner})
-  assert.equal(await ttc.isManaged(viewer), true)
+  assert.equal(await ttc.isManaged(viewer), true, `viewer : ${viewer} is not set to managed`)
   return result
 }
 
