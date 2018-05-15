@@ -6,7 +6,7 @@ import './lib/manage.sol';
 
 
 
-contract TvTwoManager is UsingChannelManager {
+contract TvTwoManager is UsingChannelManager, UsingTTCoin {
   using SafeMath for uint256;
 
   event Checkpoint (
@@ -24,7 +24,6 @@ contract TvTwoManager is UsingChannelManager {
   uint256 public minimumAllowance = 1e18;
   mapping (bytes32 => uint256) public videoIndex;
   Video[] public videos;
-  TvTwoCoinI public ttc;
 
   modifier videoHashExists(bytes32 _videoHash) {
     require(videoIndex[_videoHash] > 0);
@@ -48,16 +47,6 @@ contract TvTwoManager is UsingChannelManager {
     public
   {
     videos.push(Video('', false, address(0)));
-  }
-
-  function setTvTwoCoin(
-    address _tokenAddress
-  )
-    public
-    onlyOwner
-  {
-    require(_tokenAddress != address(ttc));
-    ttc = TvTwoCoinI(_tokenAddress);
   }
 
   function setMinimumAllowance(

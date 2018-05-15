@@ -75,7 +75,7 @@ async function migrate(owner, recipient, challengePeriod = 500) {
   await ttc.setPaywall(owner, {from:owner})
   assert.equal(await ttc.paywall(), owner, 'TTC has wrong Paywall')
 
-  ttm.setTvTwoCoin(ttc.address, {from: owner})
+  ttm.setTTCoin(ttc.address, {from: owner})
   assert.equal(await ttm.ttc(), ttc.address)
   TvTwoCoin.link(URaiden)
   URaiden.link(TvTwoCoin)

@@ -65,6 +65,8 @@ contract UsingChannelManager is Ownable, Utils {
     _;
   }
 
+  event ChannelManagerUpdated(address channelManager);
+  
   /// @notice sets the channelManager
   /// @dev must have contract code
   /// @param _new future channelManager address
@@ -75,10 +77,44 @@ contract UsingChannelManager is Ownable, Utils {
     require(isContract(_new));
     if(ChannelManagerI(_new) != channelManager && _new != 0x0) {
       channelManager = ChannelManagerI(_new);
+      ChannelManagerUpdated(channelManager);
     }
   }
 }
 
+/// @title setter/getter for TvTwoManager
+contract UsingTTCoin is Ownable, Utils {
+
+  /// @notice the ttm getter
+  TvTwoCoinI public ttc = TvTwoCoinI(0x0);
+
+  modifier ttcIsInitialized() {
+    require(address(ttc) != 0x0);
+    _;
+  }
+
+  modifier onlyTTC() {
+    require(address(ttc) != 0x0);
+    require(msg.sender == address(ttc));
+    _;
+  }
+
+  event TvTwoCoinUpdated(address ttc);
+
+  /// @notice set the TvTwoManager address
+  /// @dev address must have contract code
+  /// @param _new the future TvTwoManager address
+  function setTTCoin(address _new)
+    onlyOwner
+    public
+  {
+    require(isContract(_new));
+    if(_new != address(ttc) && _new != 0x0) {
+      ttc = TvTwoCoinI(_new);
+      TvTwoCoinUpdated(ttc);
+    }
+  }
+}
 
 /// @title setter/getter for TvTwoManager
 contract UsingTTManager is Ownable, Utils {
@@ -97,6 +133,8 @@ contract UsingTTManager is Ownable, Utils {
     _;
   }
 
+  event TvTwoManagerUpdated(address ttm);
+  
   /// @notice set the TvTwoManager address
   /// @dev address must have contract code
   /// @param _new the future TvTwoManager address
@@ -107,6 +145,7 @@ contract UsingTTManager is Ownable, Utils {
     require(isContract(_new));
     if(_new != ttm && _new != 0x0) {
       ttm = _new;
+      TvTwoManagerUpdated(ttm);
     }
   }
 }
@@ -122,6 +161,8 @@ contract UsingPaywall is Ownable {
     require(paywall != 0x0);
     _;
   }
+
+  event PaywallUpdated(address paywall);
   
   /// @notice set the paywall address
   /// @dev must not be a contract
@@ -132,6 +173,7 @@ contract UsingPaywall is Ownable {
   {
     if(_new != paywall && _new != 0x0) {
       paywall = _new;
+      PaywallUpdated(paywall);
     }
   }
 }

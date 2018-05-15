@@ -105,7 +105,7 @@ describe('StateChannels', () => {
     xit('fails if cm is not initialized', async () => {
       const _ttc = await TvTwoCoin.new({from:owner})
       await _ttc.setTTManager(ttm.address)
-      ttm.setTvTwoCoin(_ttc.address, {from: owner})
+      ttm.setTTCoin(_ttc.address, {from: owner})
       await testWillThrow(
 	testCreateViewer(uRaiden, _ttc, ttm, owner, viewer)
       )
@@ -172,7 +172,7 @@ describe('StateChannels', () => {
       const _ttc = await TvTwoCoin.new({from:owner})
       await _ttc.setTTManager(ttm.address)
       await _ttc.setPaywall(owner, {from: owner})
-      await ttm.setTvTwoCoin(_ttc.address, {from: owner})
+      await ttm.setTTCoin(_ttc.address, {from: owner})
       await ttm.createViewer(viewer, {from: owner})
       await _ttc.transfer(viewer, amount, {from: owner})
       await testWillThrow(
@@ -190,7 +190,7 @@ describe('StateChannels', () => {
       )
       await _ttc.setChannelManager(_uRaiden.address, {from: owner})
       await _ttc.setTTManager(ttm.address)
-      await ttm.setTvTwoCoin(_ttc.address, {from: owner})
+      await ttm.setTTCoin(_ttc.address, {from: owner})
       await ttm.createViewer(viewer, {from: owner})
       await _ttc.transfer(viewer, amount, {from: owner})
 

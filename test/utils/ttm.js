@@ -11,16 +11,17 @@ const testCreateViewer = async (uRaiden, ttc, ttm,  owner, viewer) => {
 
 const testSetTvTwoCoin = async (ttm, sender, ttcAddress) => {
   const preTtc = await ttm.ttc()
-  await ttm.setTvTwoCoin(ttcAddress, {
+  await ttm.setTTCoin(ttcAddress, {
     from: sender
   })
   const postTtc = await ttm.ttc()
-  assert(preTtc !== postTtc, 'the ttc address should have changed')
   assert.equal(
     postTtc,
     ttcAddress,
     'the ttc address should be set to the argument given'
   )
+  assert.notEqual(preTtc, postTtc, 'the ttc address should have changed')
+
 }
 
 const testCreateVideo = async (ttm, adHash, isAd, creator) => {
