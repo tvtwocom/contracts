@@ -1,14 +1,31 @@
 const assert = require('assert')
 const BigNumber = require('bignumber.js')
-// const { testWillThrow, timeTravel } = require('./general')
+const { hasEvent } = require('./general')
 
-// [TODO] setTvTwoCoin is missing
+
+
+async function testSetTvTwoCoin(contract, owner, ttcAddress) {
+  const preTtc = await contract.ttc()
+  const result = await contract.setTTCoin(ttcAddress, {
+    from: owner
+  })
+  const postTtc = await contract.ttc()
+  assert.equal(
+    postTtc,
+    ttcAddress,
+    'the ttc address should be set to the argument given'
+  )
+  assert.notEqual(preTtc, postTtc, 'the ttc address should have changed')
+  const event = hasEvent(result, 'TvTwoCoinUpdated')
+  assert.equal(event.args.ttc, ttcAddress)
+}
 
 async function testSetChannelManager(contract, uRaiden, owner) {
   const result = await contract.setChannelManager(uRaiden.address, { from: owner })
   const channelManager = await contract.channelManager()
   assert.equal(channelManager, uRaiden.address)
-  // [TODO] should emit events
+  const event = hasEvent(result, 'ChannelManagerUpdated')
+  assert.equal(event.args.channelManager, uRaiden.address)
 }
 
 
@@ -16,7 +33,8 @@ async function testSetTTManager(contract, ttm, owner) {
   const result = await contract.setTTManager(ttm.address, { from: owner })
   const ttmAddress = await contract.ttm()
   assert.equal(ttmAddress, ttm.address)
-  // [TODO] should emit events
+  const event = hasEvent(result, 'TvTwoManagerUpdated')
+  assert.equal(event.args.ttm, ttm.address)
 
 }
 
@@ -24,12 +42,14 @@ async function testSetPaywall(contract, paywall, owner) {
   const result = await contract.setPaywall(paywall, { from: owner })
   const _paywall = await contract.paywall()
   assert.equal(_paywall, paywall)
-  // [TODO] should emit events
+  const event = hasEvent(result, 'PaywallUpdated')
+  assert.equal(event.args.paywall, paywall)
 }
 
 
 module.exports = {
   testSetChannelManager,
   testSetTTManager,
-  testSetPaywall
+  testSetPaywall,
+  testSetTvTwoCoin
 }

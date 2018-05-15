@@ -2,6 +2,7 @@ const assert = require('assert')
 const BigNumber = require('bignumber.js')
 
 const { testBuyTokens, testSetAllowance } = require('./ttc')
+const { testSetTvTwoCoin } = require('./manage.js')
 
 const testCreateViewer = async (uRaiden, ttc, ttm,  owner, viewer) => {
   const result = await ttm.createViewer(viewer, {from: owner})
@@ -9,20 +10,6 @@ const testCreateViewer = async (uRaiden, ttc, ttm,  owner, viewer) => {
   return result
 }
 
-const testSetTvTwoCoin = async (ttm, sender, ttcAddress) => {
-  const preTtc = await ttm.ttc()
-  await ttm.setTTCoin(ttcAddress, {
-    from: sender
-  })
-  const postTtc = await ttm.ttc()
-  assert.equal(
-    postTtc,
-    ttcAddress,
-    'the ttc address should be set to the argument given'
-  )
-  assert.notEqual(preTtc, postTtc, 'the ttc address should have changed')
-
-}
 
 const testCreateVideo = async (ttm, adHash, isAd, creator) => {
   const preVideoHashIndex = await ttm.videoIndex(adHash)

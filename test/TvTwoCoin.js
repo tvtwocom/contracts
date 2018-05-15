@@ -4,7 +4,7 @@ const TvTwoManager = artifacts.require('TvTwoManager')
 const TokenFallbackMock = artifacts.require('TokenFallbackMock')
 const assert = require('assert')
 const BigNumber = require('bignumber.js')
-const { testWillThrow, timeTravel } = require('./utils/general')
+const { testWillThrow, timeTravel, hasEvent } = require('./utils/general')
 const { testBuyTokens, testSellTokens, testSetAllowance } = require('./utils/ttc')
 const { testSetChannelManager, testSetTTManager, testSetPaywall } = require('./utils/manage')
 const expectedContractData = {
@@ -196,15 +196,6 @@ describe('when buying and selling', () => {
       const contract = await TvTwoManager.new()
       await testWillThrow(ttc.transfer, [contract.address, amount, {from: spender}])
     })
-
-    function hasEvent(receipt, eventName) {
-      const events = receipt.logs.filter( e => e.event == eventName)
-      assert(events.length > 0)
-      if(events.length === 1)
-	return events.pop()
-      else
-	return events
-    }
     
     it('should call tokenFallback with data when transfere is called',
        async () => {

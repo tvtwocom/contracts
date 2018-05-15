@@ -100,6 +100,16 @@ async function timeTravel(secIntoFuture) {
   return timeIncrement
 }
 
+function hasEvent(receipt, eventName) {
+  const events = receipt.logs.filter( e => e.event == eventName)
+  assert(events.length > 0, `${JSON.stringify(receipt, null, 2)
+    } does not contain ${eventName}`)
+  if(events.length === 1)
+    return events.pop()
+  else
+    return events
+}
+
 module.exports = {
   testWillThrow,
   gasPrice,
@@ -107,5 +117,6 @@ module.exports = {
   getEtherBalance,
   zeroAddress,
   migrate,
-  timeTravel
+  timeTravel,
+  hasEvent
 }
