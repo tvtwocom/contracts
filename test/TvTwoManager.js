@@ -3,8 +3,10 @@ const TvTwoCoin = artifacts.require('TvTwoCoin')
 const assert = require('assert')
 const BigNumber = require('bignumber.js')
 const { testWillThrow, zeroAddress } = require('./utils/general')
+const { testSetChannelManager,
+	testSetPaywall,
+	testSetTTCoin } = require('./utils/manage')
 const {
-  testSetTvTwoCoin,
   testCreateVideo,
   testSetMinAllowance,
   testSetupTtcBalancesAllowances,
@@ -40,23 +42,6 @@ describe('when first setting up TvTwoManager', () => {
         placeholder[2] === zeroAddress,
         'the address set in placeholder should be address(0)'
       )
-    })
-
-    it('should start with TvTwoCoin unintialized', async () => {
-      const ttmTtc = await ttm.ttc()
-      assert.equal(
-        ttmTtc,
-        zeroAddress,
-        'ttm should start with ttc as address(0)'
-      )
-    })
-
-    it('should set TvTwoCoin when owner', async () => {
-      await testSetTvTwoCoin(ttm, owner, ttc.address)
-    })
-
-    it('should NOT set TvTwoCoin when NOT owner', async () => {
-      await testWillThrow(testSetTvTwoCoin, [ttm, notOwner, zeroAddress])
     })
 
     it('should set minimumAllowance when owner', async () => {
@@ -115,7 +100,7 @@ describe('when creating videos', () => {
       const isAd = true
       await testBuyTokens(ttc, advertiser, buyAmount)
       await testSetAllowance(ttc, advertiser, ttm.address, minTokenAmount)
-      await testSetTvTwoCoin(ttm, owner, ttc.address)
+      await testSetTTCoin(ttm, ttc, owner)
       await testCreateVideo(ttm, adHash, isAd, advertiser)
     })
 
@@ -125,7 +110,7 @@ describe('when creating videos', () => {
       const isAd = true
       await testBuyTokens(ttc, advertiser, buyAmount)
       await testSetAllowance(ttc, advertiser, ttm.address, minTokenAmount)
-      await testSetTvTwoCoin(ttm, owner, ttc.address)
+      await testSetTTCoin(ttm, ttc, owner)
       await testCreateVideo(ttm, adHash, isAd, advertiser)
       await testWillThrow(testCreateVideo, [
         ttm,
@@ -141,7 +126,7 @@ describe('when creating videos', () => {
       const isAd = true
       await testBuyTokens(ttc, advertiser, buyAmount)
       await testSetAllowance(ttc, advertiser, ttm.address, minTokenAmount)
-      await testSetTvTwoCoin(ttm, owner, ttc.address)
+      await testSetTTCoin(ttm, ttc, owner)
       await testCreateVideo(ttm, adHash, isAd, advertiser)
       await testBuyTokens(ttc, contentCreator, buyAmount)
       await testSetAllowance(ttc, contentCreator, ttm.address, minTokenAmount)
@@ -159,7 +144,7 @@ describe('when creating videos', () => {
       const isAd = true
       await testBuyTokens(ttc, contentCreator, buyAmount)
       await testSetAllowance(ttc, contentCreator, ttm.address, minTokenAmount)
-      await testSetTvTwoCoin(ttm, owner, ttc.address)
+      await testSetTTCoin(ttm, ttc, owner)
       await testCreateVideo(ttm, videoHash, isAd, contentCreator)
     })
   })
@@ -220,4 +205,80 @@ describe('when reaching checkpoints', async () => {
       ])
     })
   })
+
 })
+
+describe('TvTwoManager helpers', () => {
+  const owner = web3.eth.accounts[0]
+  const spender = web3.eth.accounts[1]
+  const recipient = web3.eth.accounts[2]
+  const other = web3.eth.accounts[9]
+  const addr  = web3.eth.accounts
+  let ttm
+  beforeEach(async ()=>{
+    ttm = await TvTwoManager.new({from: owner})
+  })
+
+  describe('join', () => {
+    it('join should create 40 bytes data when called with open_block == 0', async () => {
+      const result = await ttm.join(addr[1], addr[2], '0x0')
+      // length in hexstring 40*2 +2
+      assert.equal(result.length, 82, 'length wrong')
+      assert.equal(result.slice(2,42), addr[1].replace(/^0x/, ''))
+      assert.equal(result.slice(42,82), addr[2].replace(/^0x/, ''))
+    })
+
+    it('join should create 44 bytes data when called with open_block != 0', async () => {
+      const open_block = new BigNumber(0x12345)
+      const result = await ttm.join(addr[1], addr[2], open_block)
+      // length in hexstring 40*2 +2
+      assert.equal(result.length, 90, 'length wrong')
+      assert.equal(result.slice(2,42), addr[1].replace(/^0x/, ''))
+      assert.equal(result.slice(42,82), addr[2].replace(/^0x/, ''))
+      assert(open_block.equals('0x'+result.slice(82,90)) )
+    })
+  })
+
+  describe('paywall', () => {
+    it('paywall should be unset on deploy', async () => {
+      const paywall = await ttm.paywall()
+      assert.equal(paywall, '0x0000000000000000000000000000000000000000')
+    })
+
+    it('should set the Paywall', async () => {
+      await testSetPaywall(ttm, spender, owner)
+    })
+
+    it('shold not allow setting Paywall by not owner', async () => {
+      await testWillThrow(testSetPaywall(ttm, spender, other))
+      assert(await ttm.paywall(), '0x0000000000000000000000000000000000000000', 'TvTwoManager is not unset')
+    })
+  })
+
+  describe('setTTCoin', ()=> {
+    it('TTCoin should be unset on deploy', async () => {
+      const TTCoin = await ttm.ttc()
+      assert.equal(TTCoin, '0x0000000000000000000000000000000000000000')
+    })
+
+    it('should set the TTCoin', async () => {
+      const ttc = await TvTwoCoin.new({from: owner})
+      await testSetTTCoin(ttm, ttc, owner)
+    })
+
+
+    it('shold not allow setting TTCoin by not owner', async () => {
+      const ttc = await TvTwoCoin.new({from: owner})
+      await testWillThrow(testSetTTCoin(ttm, ttc, other))
+      assert(await ttm.ttc(), '0x0000000000000000000000000000000000000000', 'TvTwoCoin is not unset')
+    })
+
+    it('should not set the TTCoin to not contract', async () => {
+      await testWillThrow( ttm.setTTCoin(other, {from: owner}) )
+      assert(await ttm.ttc(), '0x0000000000000000000000000000000000000000', 'TvTwoCoin is not unset')
+    })
+
+  })
+})
+
+

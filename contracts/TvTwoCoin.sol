@@ -5,7 +5,7 @@ import "zeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./lib/manage.sol";
 
 
-contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTManager {
+contract TvTwoCoin is StandardToken, UsingChannelManager, UsingTTManager {
   string public name = "TV-TWO";
   string public symbol = "TTV";
   uint256 public decimals = 18;
@@ -128,57 +128,26 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTM
     _;
   }
 
-  /// @notice creates data structures for tokenFallback of the channelManager
-  /// @param address1 spender address
-  /// @param address2 recepient address
-  /// @param block_number open_block to topUp, and 0 to create new channel
-  function join(address address1, address address2, uint32 block_number)   pure
-    public
-    returns (bytes)
-  {
-    bytes memory channelData = new bytes(44);
-    uint256 pre = 256**20;
-
-    if(block_number == 0) {
-      pre = pre*40;
-    } else {
-      pre = pre * 44;
-    }
-    assembly {
-	/* let pre := mload(add(topUpChannelData, 20)) */
-      mstore(add(channelData, 44), block_number)
-      mstore( add(channelData, 40), address2)
-      mstore(
-	add(channelData, 20),
-	or(pre, address1)
-      )
-    }
-    return channelData;
-  }
-
   /// @notice deposit tokens with the channelManager for the paywall
   /// @notice can only be called by TvTwoManager
   /// @param _value amount of tokens
-  /// @param _open_block_number the block number of an already existing channel, 0 for new channel
+  /// @param _data the data to be sent along tokenFallback to channelManager
   /// @dev this would mean owner can replace channelManager with a wallet contract, stealing all managed coins
   function deposit(
 		   address spender,
 		   uint192 _value,
-		   uint32 _open_block_number
+		   bytes _data
 		   )
     onlyTTM
     cmIsInitialized
-    paywallIsInitialized
     external
-    returns (bool success) {
+  {
     require(spender != 0x0);
     require(managed[spender]);
     balances[spender] = balances[spender].sub(_value);
     balances[address(channelManager)] = balances[address(channelManager)].add( _value);
     Transfer(spender, channelManager, _value);
-    channelManager.tokenFallback(spender, _value, join(spender, paywall, _open_block_number));
-
-    return true;
+    channelManager.tokenFallback(spender, _value, _data);
   }
 
 

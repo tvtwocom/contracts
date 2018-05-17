@@ -22,7 +22,7 @@ contract TvTwoCoinI is Token {
     external
     returns (bool success);
 
-  function deposit(address spender, uint192 _value, uint32 _opening_block)
+  function deposit(address spender, uint192 _value, bytes _data)
     external
     returns (bool success);
 
@@ -61,6 +61,7 @@ contract UsingChannelManager is Ownable, Utils {
   }
 
   modifier onlyCM() {
+    require(channelManager != ChannelManagerI(0x0));
     require(msg.sender == address(channelManager));
     _;
   }

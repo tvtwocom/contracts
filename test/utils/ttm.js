@@ -2,7 +2,7 @@ const assert = require('assert')
 const BigNumber = require('bignumber.js')
 
 const { testBuyTokens, testSetAllowance } = require('./ttc')
-const { testSetTvTwoCoin } = require('./manage.js')
+const { testSetTTCoin } = require('./manage.js')
 
 const testCreateViewer = async (uRaiden, ttc, ttm,  owner, viewer) => {
   const result = await ttm.createViewer(viewer, {from: owner})
@@ -163,7 +163,7 @@ const testSetupTtcBalancesAllowances = async (
   owner,
   ecosystemParticipants
 ) => {
-  await testSetTvTwoCoin(ttm, owner, ttc.address)
+  await testSetTTCoin(ttm, ttc, owner)
 
   const minTokenAmount = await ttm.minimumAllowance()
   const minBuyAmount = await ttc.tokensToWei(minTokenAmount)
@@ -200,7 +200,6 @@ const testSetupTtcBalancesAllowances = async (
 }
 
 module.exports = {
-  testSetTvTwoCoin,
   testCreateVideo,
   testReachCheckpoint,
   testSetMinAllowance,

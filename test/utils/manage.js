@@ -4,20 +4,20 @@ const { hasEvent } = require('./general')
 
 
 
-async function testSetTvTwoCoin(contract, owner, ttcAddress) {
+async function testSetTTCoin(contract, ttc, owner) {
   const preTtc = await contract.ttc()
-  const result = await contract.setTTCoin(ttcAddress, {
+  const result = await contract.setTTCoin(ttc.address, {
     from: owner
   })
   const postTtc = await contract.ttc()
   assert.equal(
     postTtc,
-    ttcAddress,
+    ttc.address,
     'the ttc address should be set to the argument given'
   )
   assert.notEqual(preTtc, postTtc, 'the ttc address should have changed')
   const event = hasEvent(result, 'TvTwoCoinUpdated')
-  assert.equal(event.args.ttc, ttcAddress)
+  assert.equal(event.args.ttc, ttc.address)
 }
 
 async function testSetChannelManager(contract, uRaiden, owner) {
@@ -51,5 +51,5 @@ module.exports = {
   testSetChannelManager,
   testSetTTManager,
   testSetPaywall,
-  testSetTvTwoCoin
+  testSetTTCoin
 }

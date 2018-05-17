@@ -220,7 +220,7 @@ describe('when buying and selling', () => {
 })
 
 
-describe('helpers', () => {
+describe('TvTwoCoin helpers', () => {
   let uRaiden, ttc, ttm
   const owner = web3.eth.accounts[0]
   const spender = web3.eth.accounts[1]
@@ -230,24 +230,6 @@ describe('helpers', () => {
     
   beforeEach(async () => {
     ttc = await TvTwoCoin.new({from: owner}) //instances.ttc
-  })
-
-  it('join should create 40 bytes data when called with open_block == 0', async () => {
-    const result = await ttc.join(addr[1], addr[2], 0)
-    // length in hexstring 40*2 +2
-    assert.equal(result.length, 82, 'length wrong')
-    assert.equal(result.slice(2,42), addr[1].replace(/^0x/, ''))
-    assert.equal(result.slice(42,82), addr[2].replace(/^0x/, ''))
-  })
-
-  it('join should create 44 bytes data when called with open_block != 0', async () => {
-    const open_block = new BigNumber(0x12345)
-    const result = await ttc.join(addr[1], addr[2], open_block)
-    // length in hexstring 40*2 +2
-    assert.equal(result.length, 90, 'length wrong')
-    assert.equal(result.slice(2,42), addr[1].replace(/^0x/, ''))
-    assert.equal(result.slice(42,82), addr[2].replace(/^0x/, ''))
-    assert(open_block.equals('0x'+result.slice(82,90)) )
   })
 
   it('channelManager should be unset on deploy', async () => {
@@ -266,7 +248,7 @@ describe('helpers', () => {
     assert(await ttc.channelManager(), '0x0000000000000000000000000000000000000000', 'channelManager is not unset')
 
   })
-
+  
   it('should not set the channelManager to not contract', async () => {
     await testWillThrow( ttc.setChannelManager(other, {from: owner}) )
     assert(await ttc.channelManager(), '0x0000000000000000000000000000000000000000', 'channelManager is not unset')
@@ -292,23 +274,7 @@ describe('helpers', () => {
 
   it('should not set the TTManager to not contract', async () => {
     await testWillThrow( ttc.setTTManager(other, {from: owner}) )
-    assert(await ttc.channelManager(), '0x0000000000000000000000000000000000000000', 'channelManager is not unset')
-  })
-
-  it('paywall should be unset on deploy', async () => {
-    const paywall = await ttc.paywall()
-    assert.equal(paywall, '0x0000000000000000000000000000000000000000')
-  })
-
-  it('should set the Paywall', async () => {
-    await testSetPaywall(ttc, spender, owner)
-  })
-
-
-  it('shold not allow setting Paywall by not owner', async () => {
-    await testWillThrow(testSetPaywall(ttc, spender, other))
-    assert(await ttc.paywall(), '0x0000000000000000000000000000000000000000', 'TvTwoManager is not unset')
-
+    assert(await ttc.ttm(), '0x0000000000000000000000000000000000000000', 'TvTwoManager is not unset')
   })
   
 })

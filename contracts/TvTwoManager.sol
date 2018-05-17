@@ -6,7 +6,7 @@ import './lib/manage.sol';
 
 
 
-contract TvTwoManager is UsingChannelManager, UsingTTCoin {
+contract TvTwoManager is UsingTTCoin, UsingPaywall {
   using SafeMath for uint256;
 
   event Checkpoint (
@@ -100,21 +100,53 @@ contract TvTwoManager is UsingChannelManager, UsingTTCoin {
     return true;
   }
   
+
+  /// @notice creates data structures for tokenFallback of the channelManager
+  /// @param address1 spender address
+  /// @param address2 recepient address
+  /// @param block_number open_block to topUp, and 0 to create new channel
+  function join(address address1, address address2, uint32 block_number)
+    pure
+    public
+    returns (bytes)
+  {
+    bytes memory channelData = new bytes(44);
+    uint256 len = 256**20; // 20 byte offset for one address
+
+    if(block_number == 0) {
+      len = len * 40; // length of two addresses
+    } else {
+      len = len * 44; // length of two addresses and block_number
+    }
+    assembly {
+      mstore( add(channelData, 44), block_number)
+      mstore( add(channelData, 40), address2)
+      mstore(
+	add(channelData, 20),
+	or(len, address1) // overwriting array's byte length  
+      )                   // with value from len
+    }
+    return channelData;
+  }
+
+
   function createViewer(address _viewer)
     ttcInitialized
     onlyOwner
     public
-    returns (bool success)
   {
-    return ttc.createViewer(_viewer);
+    ttc.createViewer(_viewer);
   }
-
-  function deposit(address _viewer, uint192 _value, uint32 _opening_block)
+  
+  /// @param _opening_block_number the block number of an already existing channel, 0 for new channel
+  function deposit(address _viewer, uint192 _value, uint32 _opening_block_number)
     ttcInitialized
+    paywallIsInitialized
     onlyOwner
     public
   {
-    ttc.deposit(_viewer, _value, _opening_block);
+    ttc.deposit(_viewer, _value,
+		join(_viewer, paywall, _opening_block_number));
   }
   
 }

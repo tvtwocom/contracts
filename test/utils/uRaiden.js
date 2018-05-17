@@ -144,7 +144,7 @@ async function testDepositTopUp(uRaiden, ttc, ttm, owner, channel, amount) {
 
   const preBalance = {
     spender: await ttc.balanceOf(channel.spender),
-    recipient: await ttc.balanceOf(await ttc.paywall()),
+    recipient: await ttc.balanceOf(await ttm.paywall()),
     channelManager: await ttc.balanceOf(uRaiden.address)
   }
   const result = await ttm.deposit(
@@ -156,7 +156,7 @@ async function testDepositTopUp(uRaiden, ttc, ttm, owner, channel, amount) {
 
   const postBalance = {
     spender: await ttc.balanceOf(channel.spender),
-    recipient: await ttc.balanceOf(await ttc.paywall()),
+    recipient: await ttc.balanceOf(await ttm.paywall()),
     channelManager: await ttc.balanceOf(uRaiden.address)
   }
 
@@ -202,7 +202,7 @@ async function testDeposit(uRaiden, ttc, ttm, spender, owner, amount) {
 
   const preBalance = {
     spender: await ttc.balanceOf(spender),
-    recipient: await ttc.balanceOf(await ttc.paywall()),
+    recipient: await ttc.balanceOf(await ttm.paywall()),
     channelManager: await ttc.balanceOf(uRaiden.address)
   }
 
@@ -215,7 +215,7 @@ async function testDeposit(uRaiden, ttc, ttm, spender, owner, amount) {
 
   const postBalance = {
     spender: await ttc.balanceOf(spender),
-    recipient: await ttc.balanceOf(await ttc.paywall()),
+    recipient: await ttc.balanceOf(await ttm.paywall()),
     channelManager: await ttc.balanceOf(uRaiden.address)
   }
 
@@ -239,7 +239,7 @@ async function testDeposit(uRaiden, ttc, ttm, spender, owner, amount) {
 
   assert.equal(ccEvent._sender_address, spender, 'spender wrong')
   assert.equal(tEvent.from, spender, 'not from spender')
-  assert.equal(ccEvent._receiver_address, await ttc.paywall(), 'receiver wrong')
+  assert.equal(ccEvent._receiver_address, await ttm.paywall(), 'receiver wrong')
   assert.equal(tEvent.to, uRaiden.address, 'not to channelManager')
   
   assert.equal(ccEvent._deposit.toString(), amount.toString(), 'deposit wrong')

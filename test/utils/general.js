@@ -64,7 +64,8 @@ async function migrate(owner, recipient, challengePeriod = 500) {
     {from: owner}
   )
 
-  await Promise.all([ttc,ttm].map(async contract => {
+  // [TODO] if CM is used only by ttc we don't need this loop
+  await Promise.all([ttc].map(async contract => {
     await contract.setChannelManager(uRaiden.address, {from: owner})
     assert.equal(await contract.channelManager(), uRaiden.address, 'TTC has wrong ChannelManager')
   }))
@@ -72,8 +73,8 @@ async function migrate(owner, recipient, challengePeriod = 500) {
   await ttc.setTTManager(ttm.address, {from: owner})
   assert.equal(await ttc.ttm(), ttm.address, 'TTC has wrong TvTwoManger')
 
-  await ttc.setPaywall(owner, {from:owner})
-  assert.equal(await ttc.paywall(), owner, 'TTC has wrong Paywall')
+  await ttm.setPaywall(owner, {from:owner})
+  assert.equal(await ttm.paywall(), owner, 'TTC has wrong Paywall')
 
   ttm.setTTCoin(ttc.address, {from: owner})
   assert.equal(await ttm.ttc(), ttc.address)
