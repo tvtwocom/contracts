@@ -149,7 +149,7 @@ describe('StateChannels', () => {
       await ttc.transfer(viewer, amount*2, {from: owner})
       const channel = {
 	spender: viewer,
-	recipient: await ttc.paywall(),
+	recipient: await ttm.paywall(),
 	openingBlock: 12
       }
       await testWillThrow(
@@ -171,7 +171,6 @@ describe('StateChannels', () => {
       const amount = new BigNumber(12e18) 
       const _ttc = await TvTwoCoin.new({from:owner})
       await _ttc.setTTManager(ttm.address)
-      await _ttc.setPaywall(owner, {from: owner})
       await ttm.setTTCoin(_ttc.address, {from: owner})
       await ttm.createViewer(viewer, {from: owner})
       await _ttc.transfer(viewer, amount, {from: owner})
@@ -181,21 +180,16 @@ describe('StateChannels', () => {
     })
     
     it('deposit fails if paywall is not initialized', async () => {
-       const viewer = web3.eth.accounts[3]
+      const viewer = web3.eth.accounts[3]
       const amount = new BigNumber(12e18) 
-      const _ttc = await TvTwoCoin.new({from:owner})
-      const _uRaiden = await URaiden.new(
-	_ttc.address, 500, [],
-	{from: owner}
-      )
-      await _ttc.setChannelManager(_uRaiden.address, {from: owner})
-      await _ttc.setTTManager(ttm.address)
-      await ttm.setTTCoin(_ttc.address, {from: owner})
-      await ttm.createViewer(viewer, {from: owner})
-      await _ttc.transfer(viewer, amount, {from: owner})
-
+      const _ttm = await TvTwoManager.new({from: owner})
+      await ttc.setTTManager(_ttm.address, {from: owner})
+      await _ttm.setTTCoin(ttc.address, {from: owner})
+      await _ttm.createViewer(viewer, {from: owner})
+      await ttc.transfer(viewer, amount, {from: owner})
+      
       await testWillThrow(
-	ttm.deposit(viewer, amount, 0, {from: owner})
+	_ttm.deposit(viewer, amount, 0, {from: owner})
       )
     })
       
