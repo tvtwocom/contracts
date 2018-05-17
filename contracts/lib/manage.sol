@@ -46,6 +46,14 @@ contract ChannelManagerI {
 				 uint192 _deposit
 				 )
     external;
+
+  function getChannelInfo(
+			  address _sender_address,
+			  address _receiver_address,
+			  uint32 _open_block_number)
+    external
+    view
+    returns (bytes32, uint192, uint32, uint192, uint192);
   address public token;
 }
 

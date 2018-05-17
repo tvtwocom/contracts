@@ -129,7 +129,9 @@ contract TvTwoManager is UsingTTCoin, UsingPaywall {
     return channelData;
   }
 
-
+  /// @notice forwards call to the connected coin
+  /// @dev sets ttc.managed(_viewer) to true if ttc.balanceOf(_viewer) == 0
+  /// @param _viewer the new viewer address
   function createViewer(address _viewer)
     ttcInitialized
     onlyOwner
@@ -137,7 +139,11 @@ contract TvTwoManager is UsingTTCoin, UsingPaywall {
   {
     ttc.createViewer(_viewer);
   }
-  
+
+  /// @notice will deposit some tokens on behalf of a managed user with the channelManager
+  /// @dev forwards a _data value to ttc, which will do transfers of coins and calls tokenFallback of the channelManager
+  /// @param _viewer the managed user
+  /// @param _value amount of tokens
   /// @param _opening_block_number the block number of an already existing channel, 0 for new channel
   function deposit(address _viewer, uint192 _value, uint32 _opening_block_number)
     ttcInitialized
