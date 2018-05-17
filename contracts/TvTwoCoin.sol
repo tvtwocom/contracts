@@ -128,40 +128,32 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingPaywall, UsingTTM
     _;
   }
 
-
   /// @notice creates data structures for tokenFallback of the channelManager
   /// @param address1 spender address
   /// @param address2 recepient address
   /// @param block_number open_block to topUp, and 0 to create new channel
-  /// [TODO] decrease memory usage
   function join(address address1, address address2, uint32 block_number)   pure
     public
     returns (bytes)
   {
+    bytes memory channelData = new bytes(44);
+    uint256 pre = 256**20;
+
     if(block_number == 0) {
-      bytes memory openChannelData = new bytes(40);
-      assembly {
-	let pre := mload(add(openChannelData, 20))
-	mstore( add(openChannelData, 40), address2)
-	mstore(
-	  add(openChannelData, 20),
-	  or(pre, address1)
-	)	  
-      }
-      return openChannelData;
+      pre = pre*40;
     } else {
-      bytes memory topUpChannelData = new bytes(44);
-      assembly {
-	let pre := mload(add(topUpChannelData, 20))
-	mstore(add(topUpChannelData, 44), block_number)
-	mstore( add(topUpChannelData, 40), address2)
-	mstore(
-	  add(topUpChannelData, 20),
-	  or(pre, address1)
-	)
-      }
-      return topUpChannelData;
+      pre = pre * 44;
     }
+    assembly {
+	/* let pre := mload(add(topUpChannelData, 20)) */
+      mstore(add(channelData, 44), block_number)
+      mstore( add(channelData, 40), address2)
+      mstore(
+	add(channelData, 20),
+	or(pre, address1)
+      )
+    }
+    return channelData;
   }
 
   /// @notice deposit tokens with the channelManager for the paywall
