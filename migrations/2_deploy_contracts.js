@@ -4,5 +4,4 @@ const RaidenMicroTransferChannels = artifacts.require('../RaidenMicroTransferCha
 module.exports = deployer => {
   deployer.deploy(TvTwoManager)
   deployer.deploy(TvTwoCoin)
-  return deployer
 }
