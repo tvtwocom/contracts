@@ -11,9 +11,9 @@ const testCreateViewer = async (uRaiden, ttc, ttm,  owner, viewer) => {
 }
 
 
-const testCreateVideo = async (ttm, adHash, isAd, creator) => {
+const testCreateVideo = async (ttm, adHash, isAd, opening_block, creator) => {
   const preVideoHashIndex = await ttm.videoIndex(adHash)
-  await ttm.addVideo(adHash, isAd, { from: creator })
+  await ttm.addVideo(adHash, isAd, opening_block, { from: creator })
   const postVideoHashIndex = await ttm.videoIndex(adHash)
   const [
     postVideoHash32,

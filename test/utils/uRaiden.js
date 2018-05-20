@@ -1,5 +1,4 @@
-const URaiden = artifacts.require('RaidenMicroTransferChannels')
-
+const TvTwoManager = artifacts.require('TvTwoManager')
 const BigNumber = require('bignumber.js')
 const eUtil = require('ethereumjs-util')
 
@@ -257,10 +256,8 @@ async function testDeposit(uRaiden, ttc, ttm, spender, owner, amount) {
   return { ...channel, channelInfo}
 }
 
-async function testCreateChannel(uRaiden, ttc, spender, amount) {
+async function testCreateChannel(uRaiden, ttc, spender, recipient, amount) {
   try {
-    const recipient = await ttc.ttm()
-
     const balances = async () => ( {
       uRaiden: await ttc.balanceOf(uRaiden.address),
       spender: await ttc.balanceOf(spender),

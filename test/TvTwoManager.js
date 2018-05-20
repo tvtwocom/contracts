@@ -1,8 +1,11 @@
+const RaidenMicroTransferChannels = artifacts.require('RaidenMicroTransferChannels')
 const TvTwoManager = artifacts.require('TvTwoManager')
 const TvTwoCoin = artifacts.require('TvTwoCoin')
 const assert = require('assert')
 const BigNumber = require('bignumber.js')
-const { testWillThrow, zeroAddress } = require('./utils/general')
+
+const { testCreateChannel } = require('./utils/uRaiden')
+const { testWillThrow, zeroAddress, migrate } = require('./utils/general')
 const { testSetChannelManager,
 	testSetPaywall,
 	testSetTTCoin } = require('./utils/manage')
@@ -23,8 +26,8 @@ describe('when first setting up TvTwoManager', () => {
     let ttc
 
     before('setup contract', async () => {
-      ttm = await TvTwoManager.new()
-      ttc = await TvTwoCoin.new()
+      ttm = await TvTwoManager.new({from: owner})
+      ttc = await TvTwoCoin.new({from: owner})
     })
 
     it('should have the correct owner set', async () => {
@@ -60,38 +63,75 @@ describe('when creating videos', () => {
   contract('TvTwoManager', accounts => {
     const owner = accounts[0]
     const advertiser = accounts[1]
+    const paywall = owner
     const contentCreator = accounts[2]
     const adHash = 'AxjkOLZWXGu6MIxdkHS6EYBwFiXWdjdW'
     const videoHash = 'YsjkOLZjdsu6MIxjf7s6EYBwFiXWdjdX'
     const duplicateHash = adHash
-    let ttm
-    let ttc
-
+    let ttc, ttm, uRaiden
     beforeEach('setup contract', async () => {
-      ttm = await TvTwoManager.new()
-      ttc = await TvTwoCoin.new()
+      const env = await migrate(owner)
+      ttc = env.ttc
+      ttm = env.ttm
+      uRaiden = env.uRaiden
     })
 
-    it('should NOT create ad if NO min balance', async () => {
+    it('should NOT create ad if NO channel given', async () => {
       const isAd = true
-      await testWillThrow(testCreateVideo, [ttm, adHash, isAd, advertiser])
+      const openingBlock = 0
+      await testWillThrow(testCreateVideo(ttm, adHash, isAd, openingBlock, advertiser))
     })
 
-    it('should NOT create ad if NO min allowance', async () => {
-      const minTokenAmount = await ttm.minimumAllowance()
+    it('should NOT create ad if WRONG channel given', async () => {
+      const isAd = true
+      const openingBlock = 123
+      await testWillThrow(testCreateVideo(ttm, adHash, isAd, openingBlock, advertiser))
+    })
+    
+    it('should NOT create ad if ttc uninitialized', async() => {
+      const _ttm = await TvTwoManager.new({from: owner})
+      await _ttm.setPaywall(paywall, {from: owner})
+      await _ttm.setChannelManager(uRaiden.address, {from:owner})
+      // await _ttm.setTTCoin(ttc.address, {from:owner})
+      const minTokenAmount = await _ttm.minimumAllowance()
       const buyAmount = await ttc.tokensToWei(minTokenAmount)
       const isAd = true
       await testBuyTokens(ttc, advertiser, buyAmount)
-      await testWillThrow(testCreateVideo, [ttm, adHash, isAd, advertiser])
-    })
+      const channelInfo = await testCreateChannel(uRaiden, ttc, advertiser, paywall, minTokenAmount)
+      await testWillThrow(
+	testCreateVideo(_ttm, adHash, isAd, channelInfo.openingBlock, advertiser)
+      )
 
-    it('should NOT create ad if ttc uninitialized', async () => {
-      const minTokenAmount = await ttm.minimumAllowance()
+    })
+    
+    it('should NOT create ad if paywall is uninitialized', async() => {
+      const _ttm = await TvTwoManager.new({from: owner})
+      // await _ttm.setPaywall(paywall, {from: owner})
+      await _ttm.setChannelManager(uRaiden.address, {from:owner})
+      await _ttm.setTTCoin(ttc.address, {from:owner})
+      const minTokenAmount = await _ttm.minimumAllowance()
       const buyAmount = await ttc.tokensToWei(minTokenAmount)
       const isAd = true
       await testBuyTokens(ttc, advertiser, buyAmount)
-      await testSetAllowance(ttc, advertiser, ttm.address, minTokenAmount)
-      await testWillThrow(testCreateVideo, [ttm, adHash, isAd, advertiser])
+      const channelInfo = await testCreateChannel(uRaiden, ttc, advertiser, paywall, minTokenAmount)
+      await testWillThrow(
+	testCreateVideo(_ttm, adHash, isAd, channelInfo.openingBlock, advertiser)
+      )
+
+    })
+    it('should NOT create ad if channelManager is uninitialized', async() => {
+      const _ttm = await TvTwoManager.new({from: owner})
+      await _ttm.setPaywall(paywall, {from: owner})
+      // await _ttm.setChannelManager(uRaiden.address, {from:owner})
+      await _ttm.setTTCoin(ttc.address, {from:owner})
+      const minTokenAmount = await _ttm.minimumAllowance()
+      const buyAmount = await ttc.tokensToWei(minTokenAmount)
+      const isAd = true
+      await testBuyTokens(ttc, advertiser, buyAmount)
+      const channelInfo = await testCreateChannel(uRaiden, ttc, advertiser, paywall, minTokenAmount)
+      await testWillThrow(
+	testCreateVideo(_ttm, adHash, isAd, channelInfo.openingBlock, advertiser)
+      )
     })
 
     it('should create an ad', async () => {
@@ -99,25 +139,18 @@ describe('when creating videos', () => {
       const buyAmount = await ttc.tokensToWei(minTokenAmount)
       const isAd = true
       await testBuyTokens(ttc, advertiser, buyAmount)
-      await testSetAllowance(ttc, advertiser, ttm.address, minTokenAmount)
-      await testSetTTCoin(ttm, ttc, owner)
-      await testCreateVideo(ttm, adHash, isAd, advertiser)
+      const channelInfo = await testCreateChannel(uRaiden, ttc, advertiser, paywall, minTokenAmount)
+      await testCreateVideo(ttm, adHash, isAd, channelInfo.openingBlock, advertiser)
     })
 
     it('should NOT create the same ad again with same hash', async () => {
       const minTokenAmount = await ttm.minimumAllowance()
-      const buyAmount = await ttc.tokensToWei(minTokenAmount)
+      const buyAmount = await ttc.tokensToWei(minTokenAmount*2)
       const isAd = true
       await testBuyTokens(ttc, advertiser, buyAmount)
-      await testSetAllowance(ttc, advertiser, ttm.address, minTokenAmount)
-      await testSetTTCoin(ttm, ttc, owner)
-      await testCreateVideo(ttm, adHash, isAd, advertiser)
-      await testWillThrow(testCreateVideo, [
-        ttm,
-        duplicateHash,
-        isAd,
-        advertiser
-      ])
+      const channelInfo = await testCreateChannel(uRaiden, ttc, advertiser, paywall, minTokenAmount*2)
+      await testCreateVideo(ttm, adHash, isAd, channelInfo.openingBlock, advertiser)
+      await testWillThrow(testCreateVideo(ttm, adHash, isAd, channelInfo.openingBlock, advertiser))
     })
 
     it('should NOT create the same video again with same hash even if other attributes different', async () => {
@@ -125,32 +158,37 @@ describe('when creating videos', () => {
       const buyAmount = await ttc.tokensToWei(minTokenAmount)
       const isAd = true
       await testBuyTokens(ttc, advertiser, buyAmount)
-      await testSetAllowance(ttc, advertiser, ttm.address, minTokenAmount)
-      await testSetTTCoin(ttm, ttc, owner)
-      await testCreateVideo(ttm, adHash, isAd, advertiser)
+      const channelInfo = await testCreateChannel(uRaiden, ttc, advertiser, paywall, minTokenAmount)
+      await testCreateVideo(ttm, adHash, isAd, channelInfo.openingBlock, advertiser)
+
+      const duplicateHash = adHash
       await testBuyTokens(ttc, contentCreator, buyAmount)
-      await testSetAllowance(ttc, contentCreator, ttm.address, minTokenAmount)
-      await testWillThrow(testCreateVideo, [
+      const otherChannel = await testCreateChannel(uRaiden, ttc, contentCreator, paywall, minTokenAmount)
+      await testWillThrow(testCreateVideo(
         ttm,
         duplicateHash,
         isAd,
-        contentCreator
-      ])
+	otherChannel.openingBlock,
+	contentCreator
+      ))
+
+      await testWillThrow(testCreateVideo(
+        ttm,
+        duplicateHash,
+        !isAd,
+	otherChannel.openingBlock,
+        advertiser
+      ))
     })
 
-    it('should create a NON ad video', async () => {
-      const minTokenAmount = await ttm.minimumAllowance()
-      const buyAmount = await ttc.tokensToWei(minTokenAmount)
-      const isAd = true
-      await testBuyTokens(ttc, contentCreator, buyAmount)
-      await testSetAllowance(ttc, contentCreator, ttm.address, minTokenAmount)
-      await testSetTTCoin(ttm, ttc, owner)
-      await testCreateVideo(ttm, videoHash, isAd, contentCreator)
+    it('should create a NON ad video, ignoring openingBlock', async () => {
+      const isAd = false
+      await testCreateVideo(ttm, videoHash, isAd, 0, contentCreator)
     })
   })
 })
 
-describe('when reaching checkpoints', async () => {
+xdescribe('when reaching checkpoints', async () => {
   contract('TvTwoManager/TvTwoCoin', accounts => {
     const owner = accounts[0]
     const advertiser = accounts[1]
@@ -277,6 +315,32 @@ describe('TvTwoManager helpers', () => {
       await testWillThrow( ttm.setTTCoin(other, {from: owner}) )
       assert(await ttm.ttc(), '0x0000000000000000000000000000000000000000', 'TvTwoCoin is not unset')
     })
+  })
+
+  describe('channelManager', () => {
+    it('channelManager should be unset on deploy', async () => {
+      const channelManager = await ttm.channelManager()
+      assert.equal(channelManager, '0x0000000000000000000000000000000000000000')
+  })
+
+  it('should set the channelManager', async () => {
+    const ttc = await TvTwoCoin.new({from: owner})
+    const uRaiden = await RaidenMicroTransferChannels.new(ttc.address, 500, [], {from: owner})
+    await testSetChannelManager(ttm, uRaiden, owner)
+  })
+
+  it('shold not allow setting ChannelManager by not owner', async () => {
+    const ttc = await TvTwoCoin.new({from: owner})
+    const uRaiden = await RaidenMicroTransferChannels.new(ttc.address, 500, [], {from: owner})
+    await testWillThrow(testSetChannelManager(ttm, uRaiden, other))
+    assert(await ttm.channelManager(), '0x0000000000000000000000000000000000000000', 'channelManager is not unset')
+
+  })
+  
+  it('should not set the channelManager to not contract', async () => {
+    await testWillThrow( ttm.setChannelManager(other, {from: owner}) )
+    assert(await ttm.channelManager(), '0x0000000000000000000000000000000000000000', 'channelManager is not unset')
+  })
 
   })
 })

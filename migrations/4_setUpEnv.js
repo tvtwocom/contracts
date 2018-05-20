@@ -10,12 +10,14 @@ module.exports = deployer => {
   
   TvTwoCoin.deployed()
     .then( tvTwoCoin => Promise.all([
-      tvTwoCoin.setTTManager(TvTwoManager.address)
+      tvTwoCoin.setTTManager(TvTwoManager.address),
+      tvTwoCoin.setChannelManager(RaidenMicroTransferChannels.address)
     ]))
-
+  
   TvTwoManager.deployed()
     .then( tvTwoManager => Promise.all([
       tvTwoManager.setPaywall(paywall),
-      tvTwoManager.setTTCoin(TvTwoCoin.address)
+      tvTwoManager.setTTCoin(TvTwoCoin.address),
+      tvTwoManager.setChannelManager(RaidenMicroTransferChannels.address)
     ]))
 }     

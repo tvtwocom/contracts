@@ -26,13 +26,13 @@ describe('StateChannels', () => {
     it('should create a channel', async () => {
       const amount = 50
       await ttc.transfer(spender, amount, {from: owner})
-      await testCreateChannel(uRaiden, ttc, spender, amount)
+      await testCreateChannel(uRaiden, ttc, spender, recepient, amount)
     })
 
     it('should increase deposit when channel already exists', async () => {
       const amount = 100
       await ttc.transfer(spender, amount, {from: owner})
-      const channelInfo = await testCreateChannel(uRaiden, ttc, spender, amount*0.3)
+      const channelInfo = await testCreateChannel(uRaiden, ttc, spender, recepient, amount*0.3)
       await testTopUpChannel(uRaiden, ttc, channelInfo, amount*0.7)
     })
 

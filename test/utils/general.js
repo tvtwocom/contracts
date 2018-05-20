@@ -52,7 +52,7 @@ const getEtherBalance = address => {
   })
 }
 
-async function migrate(owner, recipient, challengePeriod = 500) {
+async function migrate(owner, challengePeriod = 500) {
   // const challengePeriod = !!_challengePeriod ? _challengePeriod : 500
   const ttc =  await TvTwoCoin.new({from: owner})
   const ttm = await TvTwoManager.new({from: owner})
@@ -72,11 +72,15 @@ async function migrate(owner, recipient, challengePeriod = 500) {
   assert.equal(await ttc.ttm(), ttm.address, 'TTC has wrong TvTwoManger')
 
   await ttm.setPaywall(owner, {from:owner})
-  assert.equal(await ttm.paywall(), owner, 'TTC has wrong Paywall')
+  assert.equal(await ttm.paywall(), owner, 'TTM has wrong Paywall')
 
   ttm.setTTCoin(ttc.address, {from: owner})
   assert.equal(await ttm.ttc(), ttc.address)
 
+  ttm.setChannelManager(uRaiden.address, {from: owner})
+  assert.equal(await ttm.channelManager(), uRaiden.address, 'TTM has wrong ChannelManager')
+
+  
   TvTwoCoin.link(URaiden)
   URaiden.link(TvTwoCoin)
   TvTwoManager.link(TvTwoCoin)

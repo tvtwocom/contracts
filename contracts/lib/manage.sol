@@ -23,8 +23,7 @@ contract TvTwoCoinI is Token {
     returns (bool success);
 
   function deposit(address spender, uint192 _value, bytes _data)
-    external
-    returns (bool success);
+    external;
 
 }
 
