@@ -42,7 +42,7 @@ contract TvTwoManager is UsingTTCoin, UsingPaywall, UsingChannelManager {
       uint192 withdrawn_balance;
       (key, deposit, settle_block_number, closing_balance, withdrawn_balance) = channelManager.getChannelInfo(msg.sender, paywall, _opening_block_number); // selecting the out channel of msg.sender
       require(settle_block_number == 0); // channel not settled yet
-      require(closing_balance == 0); // better check it twice
+      //require(closing_balance == 0); // better check it twice
       require(deposit - withdrawn_balance >= minimumAllowance); // are enough funds deposited
     }
     _;
@@ -113,18 +113,8 @@ contract TvTwoManager is UsingTTCoin, UsingPaywall, UsingChannelManager {
     require(_opening_block_number != 0);
     require(_spender != 0x0);
     require(_recipient != 0x0);
-    bytes32 key;
-    uint192 deposit;
-    uint32 settle_block_number;
-    uint192 closing_balance;
-    uint192 withdrawn_balance;
-    (key, deposit, settle_block_number, closing_balance, withdrawn_balance) = channelManager.getChannelInfo(_spender, _recipient, _opening_block_number);
-    if(settle_block_number != 0)            //if channel is settled the closingBalance should either match balance if refering to a channelClose
-      require(closing_balance >= _balance);  //or be bigger than that if we reference a withdrawl and the channel was closed inbetween
-    else                                      //referencing a withdrawl so withdrawn balance should be bigger equal balance, 
-      require(withdrawn_balance >= _balance);  // unless another withdrawl occured by then
-    
-    Checkpoint(_spender, _recipient, _balance,_opening_block_number, _logsHash);
+    require(_logsHash != 0);
+    Checkpoint(_spender, _recipient, _balance, _opening_block_number, _logsHash);
   }
   
 

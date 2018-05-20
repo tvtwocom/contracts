@@ -184,7 +184,7 @@ describe('when creating videos', () => {
       )
     })
 
-    it('should not create an ad if channel is closed but not yet settled', async() => {
+    it('should NOT create an ad if channel is closed but not yet settled', async() => {
       const minTokenAmount = await ttm.minimumAllowance()
       const buyAmount = await ttc.tokensToWei(minTokenAmount.mul(2))
       const isAd = true
@@ -196,7 +196,6 @@ describe('when creating videos', () => {
 	channel.recipient,
 	channel.openingBlock
       ).then(toChannelInfoObject)
-      console.log(channel)
       await testWillThrow(
 	testCreateVideo(ttm, adHash, isAd, channel.openingBlock, advertiser)
       )
