@@ -84,6 +84,7 @@ async function migrate(owner, challengePeriod = 500) {
   TvTwoCoin.link(URaiden)
   URaiden.link(TvTwoCoin)
   TvTwoManager.link(TvTwoCoin)
+  TvTwoManager.link(URaiden)
   return {ttc, ttm, uRaiden}
 }
 

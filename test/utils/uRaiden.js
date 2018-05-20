@@ -46,7 +46,7 @@ balanceProofHash = (balance) => {
 
 signBalanceProof = (balance) => {
   const msg_hash = balanceProofHash(balance)
-  return web3.eth.sign(balance.spender,msg_hash)  
+  return web3.eth.sign(balance.spender,msg_hash)
 }
 
 generateClosingSig = async (channel) => {
@@ -318,7 +318,7 @@ async function testCooperativeClose(uRaiden, ttc, channel) {
     channel.sig,
     channel.closingSig
   )
-
+  
   const settleEvents = result.logs.filter(e => e.event == 'ChannelSettled')
   assert.equal(settleEvents.length, 1, 'should evoke a settle event')
   const transferEvents = result.logs.filter(e => e.event == 'Transfer')
@@ -364,6 +364,8 @@ async function testWatchAd(uRaiden, ttc, channels) {
 
 async function testWithdrawl(uRaiden, ttc, channel) {
   const result = await uRaiden.withdraw(channel.openingBlock, channel.balance, channel.sig, {from: channel.recipient})
+  // [todo] have some asserts here
+  return result
 }
 
 module.exports = {

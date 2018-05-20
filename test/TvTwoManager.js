@@ -4,7 +4,7 @@ const TvTwoCoin = artifacts.require('TvTwoCoin')
 const assert = require('assert')
 const BigNumber = require('bignumber.js')
 
-const { testCreateChannel } = require('./utils/uRaiden')
+const { testCreateChannel, testWithdrawl, testCooperativeClose, signBalanceProof, toChannelInfoObject } = require('./utils/uRaiden')
 const { testWillThrow, zeroAddress, migrate } = require('./utils/general')
 const { testSetChannelManager,
 	testSetPaywall,
@@ -143,6 +143,65 @@ describe('when creating videos', () => {
       await testCreateVideo(ttm, adHash, isAd, channelInfo.openingBlock, advertiser)
     })
 
+    it('should create an ad if there had been withdrawls on the channel', async () => {
+      const minTokenAmount = await ttm.minimumAllowance()
+      const buyAmount = await ttc.tokensToWei(minTokenAmount * 3)
+      const isAd = true
+      await testBuyTokens(ttc, advertiser, buyAmount)
+      const channelInfo = await testCreateChannel(uRaiden, ttc, advertiser, paywall, minTokenAmount*3)
+      channelInfo.balance = minTokenAmount
+      channelInfo.sig = await signBalanceProof(channelInfo)
+      const result = await testWithdrawl(uRaiden, ttc, channelInfo)
+      
+      await testCreateVideo(ttm, adHash, isAd, channelInfo.openingBlock, advertiser)
+    })
+
+    it('should NOT create an ad if there had been withdrawls and not enough balance left', async () => {
+      const minTokenAmount = await ttm.minimumAllowance()
+      const buyAmount = await ttc.tokensToWei(minTokenAmount * 2)
+      const isAd = true
+      await testBuyTokens(ttc, advertiser, buyAmount)
+      const channelInfo = await testCreateChannel(uRaiden, ttc, advertiser, paywall, minTokenAmount*2)
+      channelInfo.balance = minTokenAmount.add(1)
+      channelInfo.sig = await signBalanceProof(channelInfo)
+      const result = await testWithdrawl(uRaiden, ttc, channelInfo)
+      await testWillThrow(
+	testCreateVideo(ttm, adHash, isAd, channelInfo.openingBlock, advertiser)
+      )
+    })
+
+    it('should NOT create an ad if channel is setteled', async() => {
+      const minTokenAmount = await ttm.minimumAllowance()
+      const buyAmount = await ttc.tokensToWei(minTokenAmount.mul(2))
+      const isAd = true
+      await testBuyTokens(ttc, advertiser, buyAmount)
+      const channelInfo = await testCreateChannel(uRaiden, ttc, advertiser, paywall, minTokenAmount.mul(2))
+      channelInfo.balance = minTokenAmount
+      channelInfo.sig = await signBalanceProof(channelInfo)
+      await testCooperativeClose(uRaiden, ttc, channelInfo)
+      await testWillThrow(
+	testCreateVideo(ttm, adHash, isAd, channelInfo.openingBlock, advertiser)
+      )
+    })
+
+    it('should not create an ad if channel is closed but not yet settled', async() => {
+      const minTokenAmount = await ttm.minimumAllowance()
+      const buyAmount = await ttc.tokensToWei(minTokenAmount.mul(2))
+      const isAd = true
+      await testBuyTokens(ttc, advertiser, buyAmount)
+      const channel = await testCreateChannel(uRaiden, ttc, advertiser, paywall, minTokenAmount.mul(2))
+      await uRaiden.uncooperativeClose(channel.recipient, channel.openingBlock, minTokenAmount, {from: channel.spender})
+      channel.info = await uRaiden.getChannelInfo(
+	channel.spender,
+	channel.recipient,
+	channel.openingBlock
+      ).then(toChannelInfoObject)
+      console.log(channel)
+      await testWillThrow(
+	testCreateVideo(ttm, adHash, isAd, channel.openingBlock, advertiser)
+      )
+    })
+    
     it('should NOT create the same ad again with same hash', async () => {
       const minTokenAmount = await ttm.minimumAllowance()
       const buyAmount = await ttc.tokensToWei(minTokenAmount*2)
