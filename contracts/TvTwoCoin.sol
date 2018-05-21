@@ -164,7 +164,7 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingTTManager {
   {
     require(_viewer != address(0x0));
     require(balances[_viewer] == 0);
-    if(managed[_viewer]) {
+    if(managed[_viewer] == false) {
       managed[_viewer] = true;
       IsManaged(_viewer, true);
       return true;      
