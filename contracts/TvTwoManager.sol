@@ -17,6 +17,8 @@ contract TvTwoManager is UsingTTCoin, UsingPaywall, UsingChannelManager {
     bytes32 _logsHash  
   );
 
+  event NewVideo (bytes32 videoHash, bool isAd, address uploader, uint256 index);
+  
   struct Video {
     bytes32 videoHash;
     bool isAd;
@@ -81,12 +83,13 @@ contract TvTwoManager is UsingTTCoin, UsingPaywall, UsingChannelManager {
     cmIsInitialized
     paywallIsInitialized
     minAllowanceMet(_isAd, _opening_block_number)
-    returns (uint256)
   {
+    require(!isContract(msg.sender));
     require(videoIndex[_videoHash] == 0);
     videos.push(Video(_videoHash, _isAd, msg.sender));
-    videoIndex[_videoHash] = videos.length.sub(1);
-    return videos.length.sub(1);
+    uint256 index = videos.length.sub(1);
+    videoIndex[_videoHash] = index;
+    NewVideo(_videoHash, _isAd, msg.sender, index);
   }
 
 

@@ -38,10 +38,10 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingTTManager {
   /// @notice converts amount of tokens to wei
   /// @param _tokens amount of tokens
   /// @return amount of wei
-  function tokensToWei(uint _tokens)
+  function tokensToWei(uint256 _tokens)
     public
     view
-    returns (uint)
+    returns (uint256)
   {
     return _tokens.mul(weiTokenRate).div(100);
   }
@@ -49,10 +49,10 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingTTManager {
   /// @notice converts wei to amount of tokens
   /// @param _wei amount of _wei
   /// @return amount of tokens
-  function weiToTokens(uint _wei)
+  function weiToTokens(uint256 _wei)
     public
     view
-    returns (uint)
+    returns (uint256)
   {
     return _wei.mul(100).div(weiTokenRate);
   }
@@ -164,29 +164,36 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingTTManager {
   {
     require(_viewer != address(0x0));
     require(balances[_viewer] == 0);
-    managed[_viewer] = true;
-    IsManaged(_viewer, true);
-    return true;      
+    if(managed[_viewer]) {
+      managed[_viewer] = true;
+      IsManaged(_viewer, true);
+      return true;      
+    } else {
+      return false;
+    }
   }
 
   /// @notice returns managed flag for given address
-  function isManaged(address _user)
-    public
-    view
-    returns (bool)
-  {
-    return managed[_user];
-  }
+  /// @param _user /* the address you are interested in */
+  /* function isManaged(address _user) */
+  /*   public */
+  /*   view */
+  /*   returns (bool) */
+  /* { */
+  /*   return managed[_user]; */
+  /* } */
 
-  /// @notice sets managed flag of msg.sender
-  /// @notice can be used to turn a managed account into a token owner
+  /* /// @notice sets managed flag of msg.sender */
+  /* /// @notice can be used to turn a managed account into a token */ owner
   /// @param state false to disable gasless TvTwo viewing
   function setManged(bool state)
     public
   {
     require(managed[msg.sender] != state);
-    managed[msg.sender] = state;
-    IsManaged(msg.sender, state);
+    if(managed[msg.sender] != state) {
+      managed[msg.sender] = state;
+      IsManaged(msg.sender, state);
+    }
   }
 
 }

@@ -153,6 +153,13 @@ describe('when buying and selling', () => {
       await testWillThrow(testSellTokens, [ttc, trader, overSellTokenAmount])
     })
 
+    xit('should be possible to buy all tokens', async() => {
+      const buyAmountEth = await ttc.tokensToWei(await ttc.totalSupply())
+      console.log(buyAmountEth.div(1e18).toString())
+      await testBuyTokens(ttc, trader, buyAmountEth)
+      assert(new BigNumber(0).eq(await ttc.balanceOf(ttc.address)))
+    })
+    
     it('should set allowances', async () => {
       await testSetAllowance(ttc, approver, spender, approveAmount)
     })

@@ -143,6 +143,9 @@ describe('when creating videos', () => {
       await testCreateVideo(ttm, adHash, isAd, channelInfo.openingBlock, advertiser)
     })
 
+    it('should not create an ad if called by a contract')
+    it('should not create a video if called by a contract')
+    
     it('should create an ad if there had been withdrawls on the channel', async () => {
       const minTokenAmount = await ttm.minimumAllowance()
       const buyAmount = await ttc.tokensToWei(minTokenAmount * 3)
@@ -246,7 +249,7 @@ describe('when creating videos', () => {
   })
 })
 
-describe.only('when reaching checkpoints', async () => {
+describe('when reaching checkpoints', async () => {
 
   contract('TvTwoManager/TvTwoCoin', accounts => {
     const owner = accounts[0]
