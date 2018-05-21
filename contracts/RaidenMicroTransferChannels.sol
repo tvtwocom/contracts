@@ -22,12 +22,6 @@ contract RaidenMicroTransferChannels {
     // Contract semantic version
     string public constant version = '0.2.0';
 
-    // We temporarily limit total token deposits in a channel to 100 tokens with 18 decimals.
-    // This was calculated just for RDN with its current (as of 30/11/2017) price and should
-    // not be considered to be the same for other tokens.
-    // This is just for the bug bounty release, as a safety measure.
-    uint256 public constant channel_deposit_bugbounty_limit = 10 ** 18 * 100;
-
     Token public token;
 
     mapping (bytes32 => Channel) public channels;
@@ -569,8 +563,6 @@ contract RaidenMicroTransferChannels {
         uint192 _deposit)
         private
     {
-        require(_deposit <= channel_deposit_bugbounty_limit);
-
         uint32 open_block_number = uint32(block.number);
 
         // Create unique identifier from sender, receiver and current block number
@@ -605,7 +597,6 @@ contract RaidenMicroTransferChannels {
 
         require(channels[key].open_block_number > 0);
         require(closing_requests[key].settle_block_number == 0);
-        require(channels[key].deposit + _added_deposit <= channel_deposit_bugbounty_limit);
 
         channels[key].deposit += _added_deposit;
         assert(channels[key].deposit >= _added_deposit);
