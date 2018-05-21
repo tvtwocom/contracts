@@ -174,17 +174,17 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingTTManager {
   }
 
   /// @notice returns managed flag for given address
-  /// @param _user /* the address you are interested in */
-  /* function isManaged(address _user) */
-  /*   public */
-  /*   view */
-  /*   returns (bool) */
-  /* { */
-  /*   return managed[_user]; */
-  /* } */
+  /// @param _user the address you are interested in
+  function isManaged(address _user)
+    public
+    view
+    returns (bool)
+  {
+    return managed[_user];
+  }
 
-  /* /// @notice sets managed flag of msg.sender */
-  /* /// @notice can be used to turn a managed account into a token */ owner
+  /// @notice sets managed flag of msg.sender
+  /// @notice can be used to turn a managed account into a token owner
   /// @param state false to disable gasless TvTwo viewing
   function setManged(bool state)
     public
