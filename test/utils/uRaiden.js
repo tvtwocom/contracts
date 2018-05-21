@@ -1,6 +1,8 @@
 const TvTwoManager = artifacts.require('TvTwoManager')
 const BigNumber = require('bignumber.js')
 const eUtil = require('ethereumjs-util')
+const { hasEvent } = require('./general.js')
+
 
 channelFromEvent = event => ({
   openingBlock: event.blockNumber,
@@ -267,12 +269,11 @@ async function testCreateChannel(uRaiden, ttc, spender, recipient, amount) {
 
     const preBalances = await balances()
 
-    // depositResponse = await ttc.deposit(amount, {from: spender})
     const data = spender.concat(recipient.replace('0x',''))
     depositResponse = await ttc._transfer(uRaiden.address, amount, data, {from: spender})
-    const transferEvent = depositResponse.logs.filter(entrie => entrie.event == 'Transfer')[0]
-    // assert.equal(transferEvents.length, 1, 'there should have been two transfers one from spender to this, and one from this to stateChannelManager')
-    // [TODO] I think the implementation of deposit will change to emit just one event then this can replace the preceeding assert
+    const transferEvents = depositResponse.logs.filter(entrie => entrie.event == 'Transfer')
+    assert.equal(transferEvents.length, 1, 'there should have been one transfer event')
+    const transferEvent = transferEvents[0]
     assert.equal(transferEvent.args.from, spender, 'from')
     assert.equal(transferEvent.args.to, uRaiden.address, 'to')
 
@@ -363,8 +364,39 @@ async function testWatchAd(uRaiden, ttc, channels) {
 }
 
 async function testWithdrawl(uRaiden, ttc, channel) {
+  const preBalance = {
+    channelManager: await ttc.balanceOf(uRaiden.address),
+    spender: await ttc.balanceOf(channel.spender),
+    recipient: await ttc.balanceOf(channel.recipient)
+  }
+
   const result = await uRaiden.withdraw(channel.openingBlock, channel.balance, channel.sig, {from: channel.recipient})
-  // [todo] have some asserts here
+
+  const withdrawlEvent = hasEvent(result, 'ChannelWithdraw')
+  assert.equal(withdrawlEvent.args._sender_address, channel.spender)
+  assert.equal(withdrawlEvent.args._receiver_address, channel.recipient)
+  assert.equal(withdrawlEvent.args._open_block_number.toString(), channel.openingBlock.toString())
+  assert.equal(withdrawlEvent.args._withdrawn_balance.toString(), channel.balance.toString())
+
+  const transferEvent = hasEvent(result, 'Transfer')
+  assert.equal(transferEvent.args.from, uRaiden.address)
+  assert.equal(transferEvent.args.to, channel.recipient)
+  assert.equal(transferEvent.args.value.toString(), channel.balance.toString())
+
+  const postBalance = {
+    channelManager: await ttc.balanceOf(uRaiden.address),
+    spender: await ttc.balanceOf(channel.spender),
+    recipient: await ttc.balanceOf(channel.recipient)
+  }
+  assert.equal(postBalance.channelManager.toString(),
+	       preBalance.channelManager
+	         .sub(channel.balance).toString(),
+	       'channelManager balance wrong')
+  assert.equal(postBalance.spender.toString(),
+	       preBalance.spender.toString(),
+	       'spender balance wrong')
+  assert.equal(postBalance.recipient.toString(),
+	       preBalance.recipient.add(channel.balance).toString(), 'recipient balance wrong')
   return result
 }
 
