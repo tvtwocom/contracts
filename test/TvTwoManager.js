@@ -5,7 +5,7 @@ const assert = require('assert')
 const BigNumber = require('bignumber.js')
 
 const { testCreateChannel, testWithdrawl, testCooperativeClose, signBalanceProof, toChannelInfoObject } = require('./utils/uRaiden')
-const { testWillThrow, zeroAddress, migrate } = require('./utils/general')
+const { testWillThrow, zeroAddress, migrate, hasEvent } = require('./utils/general')
 const { testSetChannelManager,
 	testSetPaywall,
 	testSetTTCoin } = require('./utils/manage')
@@ -246,62 +246,36 @@ describe('when creating videos', () => {
   })
 })
 
-xdescribe('when reaching checkpoints', async () => {
+describe.only('when reaching checkpoints', async () => {
+
   contract('TvTwoManager/TvTwoCoin', accounts => {
     const owner = accounts[0]
-    const advertiser = accounts[1]
-    const contentCreator = accounts[2]
-    const contentConsumer = accounts[3]
-    const adHash = 'AxjkOLZWXGu6MIxdkHS6EYBwFiXWdjdW'
-    const videoHash = 'YsjkOLZjdsu6MIxjf7s6EYBwFiXWdjdX'
-    let ttc
+    const spender = accounts[1]
+    const recipient = accounts[2]
+    const other = accounts[9]
+    const balance = 100
+    const opening_block_number = 123
+    const logsHash = "0x0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
     let ttm
 
     beforeEach('setup contracts', async () => {
-      ttc = await TvTwoCoin.new()
-      ttm = await TvTwoManager.new()
-      const ecosystemParticipants = accounts.slice(1, 4)
-      await testSetupTtcBalancesAllowances(
-        ttm,
-        ttc,
-        owner,
-        ecosystemParticipants
-      )
-      await testCreateVideo(ttm, adHash, true, advertiser)
-      await testCreateVideo(ttm, videoHash, false, contentCreator)
+      ttm = (await migrate(owner)).ttm
+    })
+    
+    it('should emit event with the right properties', async () => {
+      const result = await ttm.channelCheckpoint(spender, recipient, balance, opening_block_number, logsHash, {from: owner})
+      const event = hasEvent(result, 'Checkpoint')
+      assert.equal(event.args._spender, spender)
+      assert.equal(event.args._recipient, recipient)
+      assert.equal(event.args._balance, balance)
+      assert.equal(event.args._opening_block_number.toString(),opening_block_number.toString())
+      assert.equal(event.args._logsHash, logsHash)
     })
 
-    it('should pay contentConsumer from advertiser for watched ads', async () => {
-      await testReachCheckpoint(
-        ttm,
-        ttc,
-        contentConsumer,
-        videoHash,
-        new BigNumber(1e16)
-      )
-    })
-
-    it('should pay contentCreator from contentConsumer from watched videos', async () => {
-      await testReachCheckpoint(
-        ttm,
-        ttc,
-        contentConsumer,
-        adHash,
-        new BigNumber(1e16)
-      )
-    })
-
-    it('should NOT pay anyone if hash does not exist', async () => {
-      await testWillThrow(testReachCheckpoint, [
-        ttm,
-        ttc,
-        contentConsumer,
-        'somerandommadeuphash',
-        new BigNumber(1e16)
-      ])
+    it('should throw when called by not owner', async () => {
+      await testWillThrow(ttm.channelCheckpoint(spender, recipient, balance, opening_block_number, logsHash, {from: other}))
     })
   })
-
 })
 
 describe('TvTwoManager helpers', () => {

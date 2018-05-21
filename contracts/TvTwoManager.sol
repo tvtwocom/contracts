@@ -11,7 +11,7 @@ contract TvTwoManager is UsingTTCoin, UsingPaywall, UsingChannelManager {
 
   event Checkpoint (
     address _spender,
-    address _recepient,
+    address _recipient,
     uint192 _balance,
     uint32 _opening_block_number,
     bytes32 _logsHash  
