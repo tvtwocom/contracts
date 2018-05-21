@@ -1,6 +1,8 @@
 const RaidenMicroTransferChannels = artifacts.require('RaidenMicroTransferChannels')
 const TvTwoManager = artifacts.require('TvTwoManager')
 const TvTwoCoin = artifacts.require('TvTwoCoin')
+const TTMProxy = artifacts.require('TTMProxy')
+
 const assert = require('assert')
 const BigNumber = require('bignumber.js')
 
@@ -143,8 +145,25 @@ describe('when creating videos', () => {
       await testCreateVideo(ttm, adHash, isAd, channelInfo.openingBlock, advertiser)
     })
 
-    it('should not create an ad if called by a contract')
-    it('should not create a video if called by a contract')
+    it('should not create an ad if called by a contract', async () => {
+      const proxy = await TTMProxy.new({from: owner})
+      await proxy.setTTManager(ttm.address, {from: owner})
+      const minTokenAmount = await ttm.minimumAllowance()
+      const buyAmount = await ttc.tokensToWei(minTokenAmount)
+      const isAd = true
+      await testBuyTokens(ttc, advertiser, buyAmount)
+      const channelInfo = await testCreateChannel(uRaiden, ttc, advertiser, paywall, minTokenAmount)
+      await testWillThrow(proxy.addVideo(adHash, isAd, channelInfo.openingBlock))
+      await ttm.addVideo(adHash, isAd, channelInfo.openingBlock, {from: advertiser})
+    })
+
+    it('should not create a video if called by a contract', async () => {
+      const proxy = await TTMProxy.new({from: owner})
+      await proxy.setTTManager(ttm.address, {from: owner})
+      const isAd = false
+      await testWillThrow(proxy.addVideo(adHash, isAd, 0))
+      await ttm.addVideo(adHash, isAd, 0, {from: advertiser})
+    })
     
     it('should create an ad if there had been withdrawls on the channel', async () => {
       const minTokenAmount = await ttm.minimumAllowance()

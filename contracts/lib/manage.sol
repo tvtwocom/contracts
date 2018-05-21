@@ -17,6 +17,14 @@ contract Utils {
   }
 }
 
+contract TvTwoManagerI {
+  function addVideo(
+    bytes32 _videoHash,
+    bool _isAd,
+    uint32 _opening_block_number
+  ) public;
+}
+
 contract TvTwoCoinI is Token {
   function createViewer(address _viewer)
     external
@@ -24,7 +32,6 @@ contract TvTwoCoinI is Token {
 
   function deposit(address spender, uint192 _value, bytes _data)
     external;
-
 }
 
 contract ChannelManagerI {
