@@ -374,7 +374,7 @@ async function testCooperativeClose(uRaiden, ttc, channel) {
 	         .add(channel.channelInfo.deposit)
   	         .sub(channel.balance).toString(),
 	       'spender balance wrong')
-  return result
+  return { channel, closed: true}
 }
 
 async function testWatchOriginalContent(uRaiden, ttc, channels) {
@@ -446,7 +446,12 @@ async function testWithdrawl(uRaiden, ttc, channel) {
 	       'spender balance wrong')
   assert.equal(postBalance.recipient.toString(),
 	       preBalance.recipient.add(channel.balance).toString(), 'recipient balance wrong')
-  return result
+  const channelInfo = await uRaiden.getChannelInfo(
+    channel.spender,
+    channel.recipient,
+    channel.openingBlock
+  ).then(toChannelInfoObject)
+  return { ...channel, channelInfo}
 }
 
 module.exports = {

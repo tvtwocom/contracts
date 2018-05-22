@@ -212,11 +212,8 @@ describe('StateChannels', () => {
     const channels = {}
     const amount = 60
 
-    for(role in accounts) {
-      if(role == 'viewer')
-	continue;
-      await ttc.transfer(accounts[role], amount*2, {from: owner})
-    }
+    // the advertiser bought some tokens somewhere
+    await ttc.transfer(accounts.advertiser, amount*2, {from: owner})
 
     // setup viewer
     try {
@@ -235,15 +232,12 @@ describe('StateChannels', () => {
     try {
       channels.contentCreator = await createChannel(uRaiden, ttc, owner, accounts.contentCreator, amount)
     }catch(e) {console.log('cc setup failed : ', e); throw e}
+
     // OffChain Sequence
     // viewer watches Ad,
     // recives 3 tokens, advertiser pays 3 tokens
     // TV2 settles channel, opensChannel for payment
-    // viewer wathces original content 
-    // should pay 1 Token, contentCreator receives 1
-    // 402 Payment required <-> Raiden Handshake
-    // this gets delivered to the contentCreator 
-
+    
     // console.log('beginning :', await ttc.balanceOf(accounts.viewer).then(web3.toDecimal))
 
     await testWatchAd(uRaiden, ttc, channels)
@@ -258,6 +252,17 @@ describe('StateChannels', () => {
       await ttc.balanceOf(accounts.viewer)
     )
 
+    // viewer wathces original content
+    // 402 Payment required <-> Raiden Handshake 
+    // should pay 1 Token, contentCreator receives 1
+    // viewer has to sign off-chain to pay tvtwo
+    // tvtwo has to sign off-chain to pay contentCreator
+
+    // viewer watches ad
+    // advertiser should pay 1 token viewer should receive 1 token
+    // tvtwo has to sign off-chain to pay viewer
+    // advertiser has to pay beforehand to pay tvtwo
+
     // console.log('deposited :', await ttc.balanceOf(accounts.viewer).then(web3.toDecimal))
 
     await Promise.all([
@@ -269,8 +274,8 @@ describe('StateChannels', () => {
     ])
     // testWithdrawl(uRaiden, ttc, channels.advertiser)
 
-    
-    await testCooperativeClose(uRaiden, ttc, channels.viewerIn)
+    // closing viewers receiving channel to free up tokens and toping up existing sending channel
+    channels.viewerIn = await testCooperativeClose(uRaiden, ttc, channels.viewerIn)
 
     const topUpViewerOut = await ttc.balanceOf(accounts.viewer)
     assert.equal(topUpViewerOut.toString(), '6')
@@ -278,14 +283,13 @@ describe('StateChannels', () => {
       owner,
       channels.viewerOut,
       topUpViewerOut)
-    
     console.log('toped Upd Viewer Out : ', channels.viewerOut)
-    for ( i in channels) {
-      if(['advertiser', 'viewerIn'].includes(i))
-	continue
-      const channel = channels[i]
-      await testCooperativeClose(uRaiden, ttc, channel)
-    }
+
+    // contentCreator withdraws the earned tokens
+    channels.contentCreator = await testWithdrawl(uRaiden, ttc, channels.contentCreator)
+
+    // close the channel for the viewer to free up it's tokens
+    channels.viewerOut = await testCooperativeClose(uRaiden, ttc, channels.viewerOut)
     // console.log('watched content :', await ttc.balanceOf(accounts.viewer).then(web3.toDecimal))
 
     const viewerBalance = await ttc.balanceOf(accounts.viewer).then(web3.toDecimal)
@@ -295,10 +299,9 @@ describe('StateChannels', () => {
     assert.equal(viewerBalance, 6, `viewer balance wrong : ${viewerBalance}`)
 
 
-    assert.equal(contentCreatorBalance, amount*2+3, 'contentCreator balance wrong')
+    assert.equal(contentCreatorBalance, 3, 'contentCreator balance wrong') // we watched 3 original videos
 
-    
-    assert.equal(advertiserBalance, amount, 'advertiser balance wrong')
+    assert.equal(advertiserBalance, amount, 'advertiser balance wrong') // advertiser had amount*2 tokens and deposited amount
     console.log(JSON.stringify(channels,null,2))
 
   }).timeout(5000)
