@@ -1,12 +1,18 @@
 const TvTwoCoin = artifacts.require('TvTwoCoin')
-const RaidenMicroTransferChannels = artifacts.require('RaidenMicroTransferChannels')
+const RaidenMicroTransferChannels = artifacts.require(
+  'RaidenMicroTransferChannels'
+)
 const TvTwoManager = artifacts.require('TvTwoManager')
 const TokenFallbackMock = artifacts.require('TokenFallbackMock')
 const assert = require('assert')
 const BigNumber = require('bignumber.js')
 const { testWillThrow, timeTravel, hasEvent } = require('./utils/general')
-const { testBuyTokens, testSellTokens, testSetAllowance } = require('./utils/ttc')
-const { testSetChannelManager, testSetTTManager, testSetPaywall } = require('./utils/manage')
+const {
+  testBuyTokens,
+  testSellTokens,
+  testSetAllowance
+} = require('./utils/ttc')
+const { testSetChannelManager, testSetTTManager } = require('./utils/manage')
 const expectedContractData = {
   name: 'TV-TWO',
   symbol: 'TTV',
@@ -153,90 +159,109 @@ describe('when buying and selling', () => {
       await testWillThrow(testSellTokens, [ttc, trader, overSellTokenAmount])
     })
 
-    xit('should be possible to buy all tokens', async() => {
+    xit('should be possible to buy all tokens', async () => {
       const buyAmountEth = await ttc.tokensToWei(await ttc.totalSupply())
-      console.log(buyAmountEth.div(1e18).toString())
       await testBuyTokens(ttc, trader, buyAmountEth)
       assert(new BigNumber(0).eq(await ttc.balanceOf(ttc.address)))
     })
-    
+
     it('should set allowances', async () => {
       await testSetAllowance(ttc, approver, spender, approveAmount)
     })
 
-    it('should throw when calling sell after vesting period',async () => {
+    it('should throw when calling sell after vesting period', async () => {
       const buyAmountEth = new BigNumber(1e18)
       const secIntoFuture = 31536000 // 1 year
       await testBuyTokens(ttc, trader, buyAmountEth)
       const tokenBalance = await ttc.balanceOf(trader)
-  
-      for(var i = 1; i <= 3; i++) {	
-	const timeIncrement = await timeTravel(secIntoFuture)
 
-	if(i < 3) 
-	  await testSellTokens(ttc, trader, tokenBalance/4)
-	else {
-	  assert(timeIncrement + Date.now()/1000 >= await ttc.vestingPeriod(), 'not after vesting period')
-	  await testWillThrow(testSellTokens,
-			    [ttc, trader, tokenBalance/4])
-	}
+      for (let i = 1; i <= 3; i++) {
+        const timeIncrement = await timeTravel(secIntoFuture)
+
+        if (i < 3) await testSellTokens(ttc, trader, tokenBalance / 4)
+        else {
+          assert(
+            timeIncrement + Date.now() / 1000 >= (await ttc.vestingPeriod()),
+            'not after vesting period'
+          )
+          await testWillThrow(testSellTokens, [ttc, trader, tokenBalance / 4])
+        }
       }
     })
 
     it('should throw when calling buy after vesting period', async () => {
       const buyAmountEth = new BigNumber(1e18)
       const secIntoFuture = 31536000 // 1 year
-      for(var i = 1; i <= 3; i++) {
-	const timeIncrement = await timeTravel(secIntoFuture)
-    	if(i < 3)
-    	  await testBuyTokens(ttc, trader, buyAmountEth)
-    	else {
-	  assert(timeIncrement + Date.now()/1000 >= await ttc.vestingPeriod(), 'not after vesting period')
-	  await testWillThrow(testBuyTokens, [ttc, trader, buyAmountEth])
-	}
+      for (let i = 1; i <= 3; i++) {
+        const timeIncrement = await timeTravel(secIntoFuture)
+        if (i < 3) await testBuyTokens(ttc, trader, buyAmountEth)
+        else {
+          assert(
+            timeIncrement + Date.now() / 1000 >= (await ttc.vestingPeriod()),
+            'not after vesting period'
+          )
+          await testWillThrow(testBuyTokens, [ttc, trader, buyAmountEth])
+        }
       }
     })
 
     it('should throw when transfereing to some contract without data', async () => {
       const amount = 50
-      await ttc.transfer(spender, amount*2, {from: owner})
+      await ttc.transfer(spender, amount * 2, { from: owner })
       const contract = await TvTwoManager.new()
-      await testWillThrow(ttc.transfer, [contract.address, amount, {from: spender}])
+      await testWillThrow(ttc.transfer, [
+        contract.address,
+        amount,
+        { from: spender }
+      ])
     })
-    
-    it('should call tokenFallback with data when transfere is called',
-       async () => {
-	 const amount = new BigNumber(123)
-	 await ttc.transfer(spender, amount*2, {from: owner})
-	 const contract = await TokenFallbackMock.new()
-	 const data = "TestString!\n"
-	 const result = await ttc._transfer(contract.address, amount, data, {from: spender})
 
-	 const event = hasEvent(result, 'Transfer')
-	 assert.deepEqual(event.args, {from: spender, to: contract.address, value: amount})
+    it('should call tokenFallback with data when transfere is called', async () => {
+      const amount = new BigNumber(123)
+      await ttc.transfer(spender, amount * 2, { from: owner })
+      const contract = await TokenFallbackMock.new()
+      const data = 'TestString!\n'
+      const result = await ttc._transfer(contract.address, amount, data, {
+        from: spender
+      })
 
-	 
-	 assert((await ttc.balanceOf(contract.address)).eq(amount), 'wrong amount in contract balance')
-	 assert(amount.eq(await ttc.balanceOf(spender)), 'wrong amount in spender balance')
-	 assert.equal(await contract.data(), web3.toHex(data), 'wrong data in contract')
-	 assert.equal(await contract.sender_address(), spender, 'wrong spender in contract')
-	 assert(amount.eq(await contract.deposit()), 'wrong amount in contract')
-       })
+      const event = hasEvent(result, 'Transfer')
+      assert.deepEqual(event.args, {
+        from: spender,
+        to: contract.address,
+        value: amount
+      })
+
+      assert(
+        (await ttc.balanceOf(contract.address)).eq(amount),
+        'wrong amount in contract balance'
+      )
+      assert(
+        amount.eq(await ttc.balanceOf(spender)),
+        'wrong amount in spender balance'
+      )
+      assert.equal(
+        await contract.data(),
+        web3.toHex(data),
+        'wrong data in contract'
+      )
+      assert.equal(
+        await contract.sender_address(),
+        spender,
+        'wrong spender in contract'
+      )
+      assert(amount.eq(await contract.deposit()), 'wrong amount in contract')
+    })
   })
-  
 })
 
-
 describe('TvTwoCoin helpers', () => {
-  let uRaiden, ttc, ttm
+  let ttc
   const owner = web3.eth.accounts[0]
-  const spender = web3.eth.accounts[1]
-  const recipient = web3.eth.accounts[2]
   const other = web3.eth.accounts[9]
-  const addr = web3.eth.accounts
-    
+
   beforeEach(async () => {
-    ttc = await TvTwoCoin.new({from: owner}) //instances.ttc
+    ttc = await TvTwoCoin.new({ from: owner }) //instances.ttc
   })
 
   it('channelManager should be unset on deploy', async () => {
@@ -245,20 +270,37 @@ describe('TvTwoCoin helpers', () => {
   })
 
   it('should set the channelManager', async () => {
-    const uRaiden = await RaidenMicroTransferChannels.new(ttc.address, 500, [], {from: owner})
+    const uRaiden = await RaidenMicroTransferChannels.new(
+      ttc.address,
+      500,
+      [],
+      { from: owner }
+    )
     await testSetChannelManager(ttc, uRaiden, owner)
   })
 
   it('shold not allow setting ChannelManager by not owner', async () => {
-    const uRaiden = await RaidenMicroTransferChannels.new(ttc.address, 500, [], {from: owner})
+    const uRaiden = await RaidenMicroTransferChannels.new(
+      ttc.address,
+      500,
+      [],
+      { from: owner }
+    )
     await testWillThrow(testSetChannelManager(ttc, uRaiden, other))
-    assert(await ttc.channelManager(), '0x0000000000000000000000000000000000000000', 'channelManager is not unset')
-
+    assert(
+      await ttc.channelManager(),
+      '0x0000000000000000000000000000000000000000',
+      'channelManager is not unset'
+    )
   })
-  
+
   it('should not set the channelManager to not contract', async () => {
-    await testWillThrow( ttc.setChannelManager(other, {from: owner}) )
-    assert(await ttc.channelManager(), '0x0000000000000000000000000000000000000000', 'channelManager is not unset')
+    await testWillThrow(ttc.setChannelManager(other, { from: owner }))
+    assert(
+      await ttc.channelManager(),
+      '0x0000000000000000000000000000000000000000',
+      'channelManager is not unset'
+    )
   })
 
   it('TTManger should be unset on deploy', async () => {
@@ -267,21 +309,26 @@ describe('TvTwoCoin helpers', () => {
   })
 
   it('should set the TTManger', async () => {
-    const ttm = await TvTwoManager.new({from: owner})
+    const ttm = await TvTwoManager.new({ from: owner })
     await testSetTTManager(ttc, ttm, owner)
   })
 
-
   it('shold not allow setting TTManager by not owner', async () => {
-    const ttm = await TvTwoManager.new({from: owner})
+    const ttm = await TvTwoManager.new({ from: owner })
     await testWillThrow(testSetTTManager(ttc, ttm, other))
-    assert(await ttc.ttm(), '0x0000000000000000000000000000000000000000', 'TvTwoManager is not unset')
-
+    assert(
+      await ttc.ttm(),
+      '0x0000000000000000000000000000000000000000',
+      'TvTwoManager is not unset'
+    )
   })
 
   it('should not set the TTManager to not contract', async () => {
-    await testWillThrow( ttc.setTTManager(other, {from: owner}) )
-    assert(await ttc.ttm(), '0x0000000000000000000000000000000000000000', 'TvTwoManager is not unset')
+    await testWillThrow(ttc.setTTManager(other, { from: owner }))
+    assert(
+      await ttc.ttm(),
+      '0x0000000000000000000000000000000000000000',
+      'TvTwoManager is not unset'
+    )
   })
-  
 })

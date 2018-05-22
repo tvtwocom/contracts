@@ -1,5 +1,7 @@
 const TvTwoCoin = artifacts.require('../TvTwoCoin')
-const RaidenMicroTransferChannels = artifacts.require('../RaidenMicroTransferChannels')
+const RaidenMicroTransferChannels = artifacts.require(
+  '../RaidenMicroTransferChannels'
+)
 
 module.exports = deployer => {
   // const tvTwoCoin = await TvTwoCoin.deployed()
@@ -12,4 +14,3 @@ module.exports = deployer => {
     trustedContracts
   )
 }
-		

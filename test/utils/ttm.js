@@ -4,12 +4,15 @@ const BigNumber = require('bignumber.js')
 const { testBuyTokens, testSetAllowance } = require('./ttc')
 const { testSetTTCoin } = require('./manage.js')
 
-const testCreateViewer = async (uRaiden, ttc, ttm,  owner, viewer) => {
-  const result = await ttm.createViewer(viewer, {from: owner})
-  assert.equal(await ttc.isManaged(viewer), true, `viewer : ${viewer} is not set to managed`)
+const testCreateViewer = async (uRaiden, ttc, ttm, owner, viewer) => {
+  const result = await ttm.createViewer(viewer, { from: owner })
+  assert.equal(
+    await ttc.isManaged(viewer),
+    true,
+    `viewer : ${viewer} is not set to managed`
+  )
   return result
 }
-
 
 const testCreateVideo = async (ttm, adHash, isAd, opening_block, creator) => {
   const preVideoHashIndex = await ttm.videoIndex(adHash)
