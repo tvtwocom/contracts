@@ -312,6 +312,13 @@ async function testCreateChannel(uRaiden, ttc, spender, recipient, amount) {
 
 async function testCooperativeClose(uRaiden, ttc, channel) {
   channel.closingSig = await generateClosingSig(channel)
+  const balances = async () => ({
+    spender: await ttc.balanceOf(channel.spender),
+    recipient: await ttc.balanceOf(channel.recipient),
+    channelManager: await ttc.balanceOf(uRaiden.address)
+  })
+  
+  const preBalance = await balances()
   const result = await uRaiden.cooperativeClose(
     channel.recipient,
     channel.openingBlock,
@@ -319,12 +326,54 @@ async function testCooperativeClose(uRaiden, ttc, channel) {
     channel.sig,
     channel.closingSig
   )
-  
-  const settleEvents = result.logs.filter(e => e.event == 'ChannelSettled')
-  assert.equal(settleEvents.length, 1, 'should evoke a settle event')
-  const transferEvents = result.logs.filter(e => e.event == 'Transfer')
+  const postBalance = await balances()
+  const settleEvent = hasEvent(result, 'ChannelSettled')
+  assert.equal(settleEvent.args._sender_address.toLowerCase(),
+	       channel.spender.toLowerCase(),
+	       'spender wrong')
+  assert.equal(settleEvent.args._receiver_address.toLowerCase(),
+	       channel.recipient.toLowerCase(),
+	       'recipient wrong')
+  assert.equal(settleEvent.args._open_block_number.toString(),
+	       channel.openingBlock.toString(),
+	       'openingBlock wrong')
+  assert.equal(settleEvent.args._balance.toString(),
+	       channel.balance.toString(),
+	       '_balance wrong')
+  assert.equal(settleEvent.args._receiver_tokens.toString(),
+	       new BigNumber(channel.balance).sub(channel.channelInfo.withdrawnBalance).toString(),
+	       'receiver tokens wrong')
+
+  const transferEvents = hasEvent(result, 'Transfer')
   assert.equal(transferEvents.length, 2, 'should be 2 transfer events')
-  // TODO be more certain
+  assert.equal(transferEvents[0].args.from.toLowerCase(), uRaiden.address.toLowerCase())
+  assert.equal(transferEvents[1].args.from.toLowerCase(), uRaiden.address.toLowerCase())
+  const toSpender = transferEvents.filter( t =>
+		      t.args.to.toLowerCase() === channel.spender
+					 )[0]
+  
+  assert.equal(toSpender.args.value.toString(),
+	       new BigNumber(channel.channelInfo.deposit)
+	       .sub(channel.balance).toString(), 'spender transfer value wrong')
+  const toRecipient = transferEvents.filter( t => t.args.to.toLowerCase() === channel.recipient)[0]
+  assert.equal(toRecipient.args.value.toString(),
+	       new BigNumber(channel.balance)
+	       .sub(channel.channelInfo.withdrawnBalance).toString(), 'recipient transfer value wrong')
+
+  assert.equal(postBalance.channelManager.toString(),
+	       preBalance.channelManager
+	         .sub(channel.channelInfo.deposit)
+  	         .add(channel.channelInfo.withdrawnBalance).toString(),
+	       'channelManager balance wrong')
+  assert.equal(postBalance.recipient.toString(),
+	       preBalance.recipient
+	         .add(channel.balance).toString(),
+	       'recipient balance wrong')
+  assert.equal(postBalance.spender.toString(),
+	       preBalance.spender
+	         .add(channel.channelInfo.deposit)
+  	         .sub(channel.balance).toString(),
+	       'spender balance wrong')
   return result
 }
 

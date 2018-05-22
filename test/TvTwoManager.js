@@ -213,11 +213,11 @@ describe('when creating videos', () => {
       await testBuyTokens(ttc, advertiser, buyAmount)
       const channel = await testCreateChannel(uRaiden, ttc, advertiser, paywall, minTokenAmount.mul(2))
       await uRaiden.uncooperativeClose(channel.recipient, channel.openingBlock, minTokenAmount, {from: channel.spender})
-      channel.info = await uRaiden.getChannelInfo(
-	channel.spender,
-	channel.recipient,
-	channel.openingBlock
-      ).then(toChannelInfoObject)
+      // channel.info = await uRaiden.getChannelInfo(
+      // 	channel.spender,
+      // 	channel.recipient,
+      // 	channel.openingBlock
+      // ).then(toChannelInfoObject)
       await testWillThrow(
 	testCreateVideo(ttm, adHash, isAd, channel.openingBlock, advertiser)
       )

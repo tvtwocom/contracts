@@ -274,15 +274,18 @@ describe('StateChannels', () => {
 
     const topUpViewerOut = await ttc.balanceOf(accounts.viewer)
     assert.equal(topUpViewerOut.toString(), '6')
-    await testDepositTopUp(uRaiden, ttc, ttm, owner,
-    		    channels.viewerOut,
-    		    topUpViewerOut)
+    channels.viewerOut = await testDepositTopUp(uRaiden, ttc, ttm,
+      owner,
+      channels.viewerOut,
+      topUpViewerOut)
     
     console.log('toped Upd Viewer Out : ', channels.viewerOut)
-    await Promise.all(
-      Object.keys(channels).filter((key) => !['advertiser', 'viewerIn'].includes(key)).map(
-	channel => testCooperativeClose(uRaiden, ttc, channels[channel])
-      ))
+    for ( i in channels) {
+      if(['advertiser', 'viewerIn'].includes(i))
+	continue
+      const channel = channels[i]
+      await testCooperativeClose(uRaiden, ttc, channel)
+    }
     // console.log('watched content :', await ttc.balanceOf(accounts.viewer).then(web3.toDecimal))
 
     const viewerBalance = await ttc.balanceOf(accounts.viewer).then(web3.toDecimal)
