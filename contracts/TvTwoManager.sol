@@ -1,7 +1,7 @@
 pragma solidity ^0.4.18;
 
-import "zeppelin-solidity/contracts/math/SafeMath.sol";
-import "zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/math/SafeMath.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import './lib/manage.sol';
 
 
@@ -17,7 +17,12 @@ contract TvTwoManager is UsingTTCoin, UsingPaywall, UsingChannelManager {
     bytes32 _logsHash  
   );
 
-  event NewVideo (bytes32 videoHash, bool isAd, address uploader, uint256 index);
+  event NewVideo (
+    bytes32 videoHash,
+    bool isAd,
+    address uploader,
+    uint256 index
+  );
   
   struct Video {
     bytes32 videoHash;
@@ -50,7 +55,7 @@ contract TvTwoManager is UsingTTCoin, UsingPaywall, UsingChannelManager {
     _;
   }
 
-  function TvTwoManager()
+  constructor()
     public
   {
     videos.push(Video('', false, address(0)));
@@ -89,7 +94,7 @@ contract TvTwoManager is UsingTTCoin, UsingPaywall, UsingChannelManager {
     videos.push(Video(_videoHash, _isAd, msg.sender));
     uint256 index = videos.length.sub(1);
     videoIndex[_videoHash] = index;
-    NewVideo(_videoHash, _isAd, msg.sender, index);
+    emit NewVideo(_videoHash, _isAd, msg.sender, index);
   }
 
 
@@ -117,7 +122,7 @@ contract TvTwoManager is UsingTTCoin, UsingPaywall, UsingChannelManager {
     require(_spender != 0x0);
     require(_recipient != 0x0);
     require(_logsHash != 0);
-    Checkpoint(_spender, _recipient, _balance, _opening_block_number, _logsHash);
+    emit Checkpoint(_spender, _recipient, _balance, _opening_block_number, _logsHash);
   }
   
 

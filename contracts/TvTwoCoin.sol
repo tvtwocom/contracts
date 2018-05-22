@@ -1,7 +1,7 @@
 pragma solidity ^0.4.18;
 
-import "zeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
-import "zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/token/ERC20/StandardToken.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import "./lib/manage.sol";
 
 
@@ -12,13 +12,13 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingTTManager {
   uint256 public totalSupply = 666666667e18;
   uint256 public weiTokenRate = 5;
   uint256 public companyShare = 15;
-  uint256 public vestingPeriod = 3 years;
+  uint256 public vestingPeriod = 3 * 356 * 24 * 60 * 60; // 3 years
 
   mapping (address =>  bool) managed;
 
   event IsManaged(address user, bool state);
 
-  function TvTwoCoin()
+  constructor()
     public
   {
     vestingPeriod += now;
@@ -27,12 +27,12 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingTTManager {
       .mul(companyShare)
       .div(100);
     balances[msg.sender] = _companyAmount;
-    Transfer(address(0), this, _companyAmount);
+    emit Transfer(address(0), this, _companyAmount);
 
     uint256 _contractBalance = totalSupply
       .sub(_companyAmount);
     balances[this] = _contractBalance;
-    Transfer(address(0), this, _contractBalance);
+    emit Transfer(address(0), this, _contractBalance);
   }
 
   /// @notice converts amount of tokens to wei
@@ -71,7 +71,7 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingTTManager {
       .sub(_buyAmount);
     balances[msg.sender] = balances[msg.sender]
       .add(_buyAmount);
-    Transfer(this, msg.sender, _buyAmount);
+    emit Transfer(this, msg.sender, _buyAmount);
     return true;
   }
 
@@ -87,7 +87,7 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingTTManager {
     balances[this] = balances[this]
       .add(_tokenAmount);
     msg.sender.transfer(tokensToWei(_tokenAmount));
-    Transfer(msg.sender, this, _tokenAmount);
+    emit Transfer(msg.sender, this, _tokenAmount);
     return true;
   }
 
@@ -146,7 +146,7 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingTTManager {
     require(managed[spender]);
     balances[spender] = balances[spender].sub(_value);
     balances[address(channelManager)] = balances[address(channelManager)].add( _value);
-    Transfer(spender, channelManager, _value);
+    emit Transfer(spender, channelManager, _value);
     channelManager.tokenFallback(spender, _value, _data);
   }
 
@@ -166,7 +166,7 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingTTManager {
     require(balances[_viewer] == 0);
     if(managed[_viewer] == false) {
       managed[_viewer] = true;
-      IsManaged(_viewer, true);
+      emit IsManaged(_viewer, true);
       return true;      
     } else {
       return false;
@@ -192,7 +192,7 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingTTManager {
     require(managed[msg.sender] != state);
     if(managed[msg.sender] != state) {
       managed[msg.sender] = state;
-      IsManaged(msg.sender, state);
+      emit IsManaged(msg.sender, state);
     }
   }
 

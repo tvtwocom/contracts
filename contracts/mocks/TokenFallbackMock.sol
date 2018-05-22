@@ -15,7 +15,7 @@ contract TokenFallbackMock {
 			 uint256 _deposit,
 			 bytes _data)
     external  {
-    TokenFallback(_sender_address, _deposit, _data);
+    emit TokenFallback(_sender_address, _deposit, _data);
     sender_address = _sender_address;
     deposit = _deposit;
     data = _data;

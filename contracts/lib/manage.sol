@@ -1,6 +1,6 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.21;
 
-import "zeppelin-solidity/contracts/ownership/Ownable.sol";
+import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
 import '../TokenInterface.sol';
 
 /// @title helpers used in different contracts
@@ -92,7 +92,7 @@ contract UsingChannelManager is Ownable, Utils {
     require(isContract(_new));
     if(ChannelManagerI(_new) != channelManager && _new != 0x0) {
       channelManager = ChannelManagerI(_new);
-      ChannelManagerUpdated(channelManager);
+      emit ChannelManagerUpdated(channelManager);
     }
   }
 }
@@ -126,7 +126,7 @@ contract UsingTTCoin is Ownable, Utils {
     require(isContract(_new));
     if(_new != address(ttc) && _new != 0x0) {
       ttc = TvTwoCoinI(_new);
-      TvTwoCoinUpdated(ttc);
+      emit TvTwoCoinUpdated(ttc);
     }
   }
 }
@@ -160,7 +160,7 @@ contract UsingTTManager is Ownable, Utils {
     require(isContract(_new));
     if(_new != ttm && _new != 0x0) {
       ttm = _new;
-      TvTwoManagerUpdated(ttm);
+      emit TvTwoManagerUpdated(ttm);
     }
   }
 }
@@ -188,7 +188,7 @@ contract UsingPaywall is Ownable {
   {
     if(_new != paywall && _new != 0x0) {
       paywall = _new;
-      PaywallUpdated(paywall);
+      emit PaywallUpdated(paywall);
     }
   }
 }
