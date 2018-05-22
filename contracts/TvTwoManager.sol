@@ -2,7 +2,7 @@ pragma solidity ^0.4.18;
 
 import "openzeppelin-solidity/contracts/math/SafeMath.sol";
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import './lib/manage.sol';
+import "./lib/manage.sol";
 
 
 
@@ -40,7 +40,7 @@ contract TvTwoManager is UsingTTCoin, UsingPaywall, UsingChannelManager {
   }
 
   modifier minAllowanceMet(bool isAd, uint32 _opening_block_number) {
-    if(isAd) {
+    if (isAd) {
       require(_opening_block_number != 0);
       bytes32 key;
       uint192 deposit;
@@ -58,7 +58,7 @@ contract TvTwoManager is UsingTTCoin, UsingPaywall, UsingChannelManager {
   constructor()
     public
   {
-    videos.push(Video('', false, address(0)));
+    videos.push(Video("", false, address(0)));
   }
 
   ///@notice sets the minimum amount of tokens an advertiser has to own and deposit with the channelManager to add Videos
@@ -94,7 +94,12 @@ contract TvTwoManager is UsingTTCoin, UsingPaywall, UsingChannelManager {
     videos.push(Video(_videoHash, _isAd, msg.sender));
     uint256 index = videos.length.sub(1);
     videoIndex[_videoHash] = index;
-    emit NewVideo(_videoHash, _isAd, msg.sender, index);
+    emit NewVideo(
+      _videoHash,
+      _isAd,
+      msg.sender,
+      index
+    );
   }
 
 
@@ -122,7 +127,13 @@ contract TvTwoManager is UsingTTCoin, UsingPaywall, UsingChannelManager {
     require(_spender != 0x0);
     require(_recipient != 0x0);
     require(_logsHash != 0);
-    emit Checkpoint(_spender, _recipient, _balance, _opening_block_number, _logsHash);
+    emit Checkpoint(
+      _spender,
+      _recipient,
+      _balance,
+      _opening_block_number,
+      _logsHash
+    );
   }
   
 
@@ -138,7 +149,7 @@ contract TvTwoManager is UsingTTCoin, UsingPaywall, UsingChannelManager {
     bytes memory channelData = new bytes(44);
     uint256 len = 256**20; // 20 byte offset for one address
 
-    if(block_number == 0) {
+    if (block_number == 0) {
       len = len * 40; // length of two addresses
     } else {
       len = len * 44; // length of two addresses and block_number
@@ -176,8 +187,11 @@ contract TvTwoManager is UsingTTCoin, UsingPaywall, UsingChannelManager {
     onlyOwner
     public
   {
-    ttc.deposit(_viewer, _value,
-		join(_viewer, paywall, _opening_block_number));
+    ttc.deposit(
+      _viewer,
+      _value,
+      join(_viewer, paywall, _opening_block_number)
+    );
   }
   
 }

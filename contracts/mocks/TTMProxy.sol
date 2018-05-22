@@ -2,6 +2,7 @@ pragma solidity ^0.4.18;
 
 import "../lib/manage.sol";
 
+
 contract TTMProxy is UsingTTManager {
 
   function addVideo(

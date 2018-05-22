@@ -12,7 +12,7 @@
     "imports-on-top": "error",
     "indentation": ["error", 2],
     "lbrace": "error",
-    "mixedcase": "error",
+    "mixedcase": "off",
     "no-empty-blocks": "error",
     "no-unused-vars": "error",
     "operator-whitespace": "error",

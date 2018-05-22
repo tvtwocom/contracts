@@ -21,7 +21,7 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingTTManager {
   constructor()
     public
   {
-    vestingPeriod += now;
+    vestingPeriod += block.timestamp; // solium-disable-line security/no-block-members
     
     uint256 _companyAmount = totalSupply
       .mul(companyShare)
@@ -33,6 +33,50 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingTTManager {
       .sub(_companyAmount);
     balances[this] = _contractBalance;
     emit Transfer(address(0), this, _contractBalance);
+  }
+
+  /// @notice deposit tokens with the channelManager for the paywall
+  /// @notice can only be called by TvTwoManager
+  /// @param _value amount of tokens
+  /// @param _data the data to be sent along tokenFallback to channelManager
+  /// @dev this would mean owner can replace channelManager with a wallet contract, stealing all managed coins
+  function deposit(
+    address spender,
+    uint192 _value,
+    bytes _data
+  )
+    onlyTTM
+    cmIsInitialized
+    external
+  {
+    require(spender != 0x0);
+    require(managed[spender]);
+    balances[spender] = balances[spender].sub(_value);
+    balances[address(channelManager)] = balances[address(channelManager)].add(_value);
+    emit Transfer(spender, channelManager, _value);
+    channelManager.tokenFallback(spender, _value, _data);
+  }
+
+  /// @notice ttm calls this when a new user is created,
+  /// @notice sets managed to true
+  /// @notice it won't affect addresses already owning tokens
+  /// @param _viewer address of user
+  /// @dev allows use of deposit by TvTwo 
+  /// @dev in case of fraud by owner, anyone who is going to recive tokens to a new address can check this.managed() without gasCost, and could change this by calling this.setManaged()
+  function createViewer(address _viewer)
+    onlyTTM
+    external
+    returns (bool success)
+  {
+    require(_viewer != address(0x0));
+    require(balances[_viewer] == 0);
+    if (managed[_viewer] == false) {
+      managed[_viewer] = true;
+      emit IsManaged(_viewer, true);
+      return true;      
+    } else {
+      return false;
+    }
   }
 
   /// @notice converts amount of tokens to wei
@@ -102,7 +146,7 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingTTManager {
   {
     bytes memory empty;
     success = super.transfer(_to, _value);
-    if(success && isContract(_to)) {
+    if (success && isContract(_to)) {
       ChannelManagerI(_to).tokenFallback(msg.sender, _value, empty);
     }
   }
@@ -118,59 +162,15 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingTTManager {
     returns (bool success)
   {
     success = super.transfer(_to, _value);
-    if(success && isContract(_to)) {
+    if (success && isContract(_to)) {
       ChannelManagerI(_to).tokenFallback(msg.sender, _value, _data);
     }
   }
   
   modifier inVestingPeriod() {
-    require(now < vestingPeriod);
+    // solium-disable-next-line security/no-block-members
+    require(block.timestamp < vestingPeriod);
     _;
-  }
-
-  /// @notice deposit tokens with the channelManager for the paywall
-  /// @notice can only be called by TvTwoManager
-  /// @param _value amount of tokens
-  /// @param _data the data to be sent along tokenFallback to channelManager
-  /// @dev this would mean owner can replace channelManager with a wallet contract, stealing all managed coins
-  function deposit(
-		   address spender,
-		   uint192 _value,
-		   bytes _data
-		   )
-    onlyTTM
-    cmIsInitialized
-    external
-  {
-    require(spender != 0x0);
-    require(managed[spender]);
-    balances[spender] = balances[spender].sub(_value);
-    balances[address(channelManager)] = balances[address(channelManager)].add( _value);
-    emit Transfer(spender, channelManager, _value);
-    channelManager.tokenFallback(spender, _value, _data);
-  }
-
-
-  /// @notice ttm calls this when a new user is created,
-  /// @notice sets managed to true
-  /// @notice it won't affect addresses already owning tokens
-  /// @param _viewer address of user
-  /// @dev allows use of deposit by TvTwo 
-  /// @dev in case of fraud by owner, anyone who is going to recive tokens to a new address can check this.managed() without gasCost, and could change this by calling this.setManaged()
-  function createViewer(address _viewer)
-    onlyTTM
-    external
-    returns (bool success)
-  {
-    require(_viewer != address(0x0));
-    require(balances[_viewer] == 0);
-    if(managed[_viewer] == false) {
-      managed[_viewer] = true;
-      emit IsManaged(_viewer, true);
-      return true;      
-    } else {
-      return false;
-    }
   }
 
   /// @notice returns managed flag for given address
@@ -190,7 +190,7 @@ contract TvTwoCoin is StandardToken, UsingChannelManager, UsingTTManager {
     public
   {
     require(managed[msg.sender] != state);
-    if(managed[msg.sender] != state) {
+    if (managed[msg.sender] != state) {
       managed[msg.sender] = state;
       emit IsManaged(msg.sender, state);
     }

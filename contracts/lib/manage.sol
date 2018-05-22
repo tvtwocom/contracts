@@ -1,7 +1,8 @@
 pragma solidity ^0.4.21;
 
 import "openzeppelin-solidity/contracts/ownership/Ownable.sol";
-import '../TokenInterface.sol';
+import "../TokenInterface.sol";
+
 
 /// @title helpers used in different contracts
 contract Utils {
@@ -17,13 +18,16 @@ contract Utils {
   }
 }
 
+
 contract TvTwoManagerI {
   function addVideo(
     bytes32 _videoHash,
     bool _isAd,
     uint32 _opening_block_number
-  ) public;
+  )
+    public;
 }
+
 
 contract TvTwoCoinI is Token {
   function createViewer(address _viewer)
@@ -34,34 +38,40 @@ contract TvTwoCoinI is Token {
     external;
 }
 
+
 contract ChannelManagerI {
   function tokenFallback(
-			 address _sender_address,
-			 uint256 _deposit,
-			 bytes _data
-			 )
+    address _sender_address,
+    uint256 _deposit,
+    bytes _data
+  )
     external;
+
   function createChannel(
-			 address _receiver_address,
-			 uint192 _deposit
-			 )
+    address _receiver_address,
+    uint192 _deposit
+  )
     external;
+
   function createChannelDelegate(
-				 address _sender_address,
-				 address _receiver_address,
-				 uint192 _deposit
-				 )
+    address _sender_address,
+    address _receiver_address,
+    uint192 _deposit
+  )
     external;
 
   function getChannelInfo(
-			  address _sender_address,
-			  address _receiver_address,
-			  uint32 _open_block_number)
+    address _sender_address,
+    address _receiver_address,
+    uint32 _open_block_number
+  )
     external
     view
     returns (bytes32, uint192, uint32, uint192, uint192);
+
   address public token;
 }
+
 
 /// @title setter/getter for RaidenMicroTransferChannelsContract
 contract UsingChannelManager is Ownable, Utils {
@@ -90,12 +100,13 @@ contract UsingChannelManager is Ownable, Utils {
     public
   {
     require(isContract(_new));
-    if(ChannelManagerI(_new) != channelManager && _new != 0x0) {
+    if (ChannelManagerI(_new) != channelManager && _new != 0x0) {
       channelManager = ChannelManagerI(_new);
       emit ChannelManagerUpdated(channelManager);
     }
   }
 }
+
 
 /// @title setter/getter for TvTwoManager
 contract UsingTTCoin is Ownable, Utils {
@@ -124,12 +135,13 @@ contract UsingTTCoin is Ownable, Utils {
     public
   {
     require(isContract(_new));
-    if(_new != address(ttc) && _new != 0x0) {
+    if (_new != address(ttc) && _new != 0x0) {
       ttc = TvTwoCoinI(_new);
       emit TvTwoCoinUpdated(ttc);
     }
   }
 }
+
 
 /// @title setter/getter for TvTwoManager
 contract UsingTTManager is Ownable, Utils {
@@ -158,12 +170,13 @@ contract UsingTTManager is Ownable, Utils {
     public
   {
     require(isContract(_new));
-    if(_new != ttm && _new != 0x0) {
+    if (_new != ttm && _new != 0x0) {
       ttm = _new;
       emit TvTwoManagerUpdated(ttm);
     }
   }
 }
+
 
 /// @title getter/setter for the paywal
 /// @notice the address that will sign in name of TvTwo
@@ -186,7 +199,7 @@ contract UsingPaywall is Ownable {
     onlyOwner
     public
   {
-    if(_new != paywall && _new != 0x0) {
+    if (_new != paywall && _new != 0x0) {
       paywall = _new;
       emit PaywallUpdated(paywall);
     }
