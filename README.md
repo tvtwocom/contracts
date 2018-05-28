@@ -31,13 +31,35 @@
 3. Viewers
 
 ### Description:
-
-- The smart contract implements an internal mapping between wallet address and the number of TTV that can be withdrawn by that wallet address
-- The advertiser submits a hash (related his video), his wallet address and any number of TTV to the smart contract
-- The organic content creator submits a hash (related his video) and his wallet address to the smart contract
+[TODO] describe managed viewers
+- The smart contract implements an internal mapping between wallet address and the number of TTV that 
+  can be withdrawn by that wallet address
+- The advertiser opens a payment channel with the RaidenMicroTransferChannels and deposits any number 
+  of TTV
+- The advertiser submits a hash (related his video), his wallet address and the opening_block of its 
+  channel to the TTM
+- The organic content creator submits a hash (related his video) and his wallet address to the 
+  smart contract
+- TV-TWO opens a payment channel to give TTV to the content creator
+- TV-TWO opens a payment channel to give TTV to the viewer
+- TV-TWO can open a payment channel for managed users, or the viewer can do this itself, in order 
+to pay TTV 
 - TV-TWO has a centralized server with a list of organic video links and links to advertising clips
 - The Smart TV app of the user queries the centralized server of TV-TWO for the next video to play
-- The app sends a hash related to the current video, a relevance score and its wallet address to the smart contract. The smart contract matches the hash to either the video from an advertiser or one from an organic content creator. In case of an ad, 3 TTV multiplied by the relevance score are subtracted from the internal balance of the advertiser and credited to the internal balance of the viewer. In case of an organic video, 1 TTV multiplied by the relevance score is subtracted from the internal balance of the viewer and credited to the internal balance of the organic content creator
+- The app will sign a balance proof and sends it to the TV-TWO server, which will in return deliver 
+  the requested original content, while TV-TWO will sign a balance proof about the same amount for 
+  the content creator
+- When showing an Ad TV-TWO will sign a balance proof and sends it to the App, in order to receive 
+  TTV, while the advertiser will have to sign a balance proof about the same amount and delivers 
+  it to TV-TWO, since there is no incentive for the advertiser to do so, one might have to pay in 
+  advance.
+- When a channel is closed by anyone TV-TWO will collect all transactions belonging to that channel,
+  meaning which videos had been watched, and the two corresponding balance_proofs.
+  This informations gets hashed and published, while the corresponding hash is sent to the TTM,
+  which will emit an channelCheckpoint event containging spender recipient balance and opening block 
+  number along with the logsHash.
+- A distrusting User of the Platform will be able to find the corresponding logs and check them for
+  errors. Since the logs are referenced on chain it is infeasable to forge them.
 
 ## How to Run
 Main things that will matter for now is testing. This can be done with `yarn test`.
