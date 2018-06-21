@@ -11,13 +11,6 @@
   - 4% go to marketing supporters (payable immediately in full)
   - 15% go to the team (split into 36 parts and released every month)
 
-### Progress:
-- [x] Total Supply 666666667
-- [x] 18 decimals
-- [x] TTV symbol
-- [x] 15% goes to company
-- [ ] Three-year vesting
-
 ## Operations Contract
 
 ### Purpose:
